@@ -50,8 +50,8 @@ export async function getTipAccounts(): Promise<string[]> {
       throw new Error(`Jito tip accounts API returned ${res.status}`);
     }
 
-    const data = await res.json();
-    const accounts: string[] = Array.isArray(data) ? data : (data.accounts ?? []);
+    const data: any = await res.json();
+    const accounts: string[] = Array.isArray(data as any) ? data : (data.accounts ?? []);
 
     if (accounts.length === 0) throw new Error("Empty tip accounts list from Jito");
 
@@ -150,7 +150,7 @@ export async function buildAndSubmitBundle(
     return fallbackSubmit(connection, transaction, payer, submissionSlot);
   }
 
-  const responseData = await bundleResponse.json();
+  const responseData: any = await bundleResponse.json();
 
   // ── Handle Jito RPC errors ────────────────────────────────
   if (responseData.error) {

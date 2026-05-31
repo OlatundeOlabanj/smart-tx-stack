@@ -45,21 +45,17 @@ async function fetchTipFloor(): Promise<TipFloorData> {
   // Shape: [{ time, landed_tips: { p25, p50, p75, p95, p99, ema_landed_tips } }]
   const entry = Array.isArray(raw) ? raw[0] : raw;
 
-  if (!entry || !entry.landed_tips) {
+  if (!entry) {
     throw new Error(`Unexpected Jito tip floor response shape: ${JSON.stringify(raw)}`);
   }
 
-  const lt = entry.landed_tips;
-
-  // Jito returns values in SOL — convert to lamports (1 SOL = 1e9 lamports)
-  // Guard: if values look already like lamports (> 1000) skip conversion
   const toLamports = (v: number) => v < 1 ? Math.round(v * 1_000_000_000) : Math.round(v);
 
   tipCache = {
-    p25:        toLamports(lt.p25        ?? lt["25th_percentile"] ?? 0.000001),
-    p50:        toLamports(lt.p50        ?? lt["50th_percentile"] ?? 0.000005),
-    p75:        toLamports(lt.p75        ?? lt["75th_percentile"] ?? 0.000010),
-    p95:        toLamports(lt.p95        ?? lt["95th_percentile"] ?? 0.000050),
+    p25:        toLamports(entry.landed_tips_25th_percentile ?? entry.landed_tips?.p25 ?? 0.000001),
+    p50:        toLamports(entry.landed_tips_50th_percentile ?? entry.landed_tips?.p50 ?? 0.000005),
+    p75:        toLamports(entry.landed_tips_75th_percentile ?? entry.landed_tips?.p75 ?? 0.000010),
+    p95:        toLamports(entry.landed_tips_95th_percentile ?? entry.landed_tips?.p95 ?? 0.000050),
     fetched_at: now,
   };
 
