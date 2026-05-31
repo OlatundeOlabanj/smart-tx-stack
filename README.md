@@ -205,19 +205,35 @@ After running, `logs/lifecycle.json` will contain entries like:
 
 ```json
 {
-  "signature": "3tXy...",
-  "submitted_at": "2025-01-15T14:23:01.412Z",
-  "processed_at": "2025-01-15T14:23:02.891Z",
-  "confirmed_at": "2025-01-15T14:23:03.544Z",
-  "finalized_at": "2025-01-15T14:23:15.201Z",
-  "slot_submitted": 284102943,
-  "slot_landed":    284102945,
-  "tip_paid_lamports": 5000,
+  "signature": "2io6vWqw95Li...",
+  "submitted_at": "2026-05-31T07:40:17.000Z",
+  "confirmed_at": "2026-05-31T07:40:29.109Z",
+  "finalized_at": "2026-05-31T07:40:41.006Z",
+  "slot_submitted": 466135218,
+  "slot_landed": 466135224,
+  "tip_paid_lamports": 1085,
   "retry_count": 0,
-  "final_state": "Finalized",
-  "bundle_id": "abc123..."
+  "final_state": "Finalized"
 }
 ```
+
+**Real run — May 31, 2026 — All 10 transactions Finalized:**
+
+| TX | Signature | Slot | State |
+|---|---|---|---|
+| #1 | 2io6vWqw95Li... | 466135224 | Finalized |
+| #2 | PEhLgwz7iDu7... | 466135275 | Finalized |
+| #3 | 5m8FSo6t61d3... | 466135326 | Finalized |
+| #4 | 3We6qE8YrMZw... | 466135372 | Finalized |
+| #5 | 4TfLEtFtnGKZ... | 466135424 | Finalized |
+| #6 (FAULT) | 4iDynDaNv8KZ... | 466135715 | Finalized |
+| #7 | j66LzdRsSZ5a... | 466135762 | Finalized |
+| #8 | 4JC2pnHH5wza... | 466135812 | Finalized |
+| #9 | tAenCigHut3a... | 466135860 | Finalized |
+| #10 | xyuUFbEa1mv4... | 466135924 | Finalized |
+
+Wallet: `BqEjkcszfUsJ6VuYa2kAqnnCE2Q1XHu6mxbjGxq1fZni`
+Success rate: 100% | Avg confirmation: 1845ms | Total tips: 179,831 lamports
 
 Verify any signature at: `https://explorer.solana.com/tx/<signature>?cluster=devnet`
 
