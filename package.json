@@ -1,0 +1,29 @@
+{
+  "name": "smart-tx-stack",
+  "version": "1.0.0",
+  "description": "Solana Smart Transaction Stack — real Jito bundles, Helius RPC polling, Groq AI agent. Made by TJS Code.",
+  "main": "dist/index.js",
+  "scripts": {
+    "start":   "ts-node src/index.ts",
+    "build":   "tsc",
+    "dev":     "ts-node --transpile-only src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.95.4",
+    "bs58":            "^5.0.0",
+    "dotenv":          "^16.4.5",
+    "groq-sdk":        "^0.7.0",
+    "jito-ts": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/node":     "^20.14.0",
+    "ts-node":         "^10.9.2",
+    "typescript":      "^5.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "TJS Code — Olatunde Olabanjo",
+  "license": "MIT"
+}
