@@ -17,6 +17,7 @@ import {
 import bs58 from "bs58";
 
 import { pollTransactionStatus, getNetworkContext, getFreshBlockhash } from "./ingestion/poller";
+import { initGeyser, isGeyserAvailable, getLatestGeyserSlot } from "./ingestion/geyser";
 import { buildAndSubmitBundle, getRandomTipAccount }                   from "./execution/jito";
 import { calculateDynamicTip }                                         from "./execution/tips";
 import {
@@ -281,6 +282,14 @@ async function main(): Promise<void> {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[MAIN] Cannot connect to RPC: ${msg}`);
     process.exit(1);
+  }
+
+  // ── Initialise Geyser stream ─────────────────────────────
+  await initGeyser();
+  if (isGeyserAvailable()) {
+    console.log(`[MAIN] Geyser stream active — latest slot: ${getLatestGeyserSlot()}`);
+  } else {
+    console.log("[MAIN] Geyser unavailable — using RPC polling fallback");
   }
 
   // ── Load or generate wallet ───────────────────────────────
