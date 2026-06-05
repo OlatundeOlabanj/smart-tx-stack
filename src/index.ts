@@ -12,44 +12,47 @@ import {
   SystemProgram,
   Transaction,
   LAMPORTS_PER_SOL,
-  PublicKey,
 } from "@solana/web3.js";
 import bs58 from "bs58";
 
 import { pollTransactionStatus, getNetworkContext, getFreshBlockhash } from "./ingestion/poller";
-import { initGeyser, isGeyserAvailable, getLatestGeyserSlot } from "./ingestion/geyser";
-import { buildAndSubmitBundle, getRandomTipAccount }                   from "./execution/jito";
-import { calculateDynamicTip }                                         from "./execution/tips";
+import { initGeyser, isGeyserAvailable, getLatestGeyserSlot }          from "./ingestion/geyser";
+import { buildAndSubmitBundle, getRandomTipAccount }                    from "./execution/jito";
+import { calculateDynamicTip }                                          from "./execution/tips";
 import {
   createEntry,
   updateState,
   recordFailure,
   recordAiDecision,
+  appendTipTrail,
+  appendAgentDecision,
   incrementRetry,
   getEntry,
+  getAllEntries,
   saveLog,
   getSummary,
   classifyFailure,
 } from "./lifecycle/tracker";
-import { reasonAboutFailure }                                          from "./agent/reasoner";
+import { reasonAboutFailure } from "./agent/reasoner";
+import { generateAgentMemory } from "./reports/agentMemory";
 import {
   TransactionState,
   TransactionFailure,
   UrgencyLevel,
+  CongestionLevel,
 } from "./types";
 
 // ── Config ───────────────────────────────────────────────────
-const RPC_URL        = process.env.HELIUS_RPC_URL ?? process.env.SOLANA_RPC_URL ?? "";
-const MIN_BALANCE    = 0.1 * LAMPORTS_PER_SOL;
-const TX_COUNT       = 10;
-const FAULT_INJECT_AT = 5; // inject stale blockhash after tx index 4 (0-based)
+const RPC_URL         = process.env.HELIUS_RPC_URL ?? process.env.SOLANA_RPC_URL ?? "";
+const MIN_BALANCE     = 0.1 * LAMPORTS_PER_SOL;
+const TX_COUNT        = 10;
+const FAULT_INJECT_AT = 5;
 
 if (!RPC_URL) {
   console.error("[MAIN] HELIUS_RPC_URL is not set. Aborting.");
   process.exit(1);
 }
 
-// ── Helpers ──────────────────────────────────────────────────
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -68,12 +71,11 @@ async function ensureFunds(connection: Connection, keypair: Keypair): Promise<vo
       console.log(`[MAIN] Airdrop confirmed. New balance: ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`[MAIN] Airdrop failed: ${msg} — continuing with existing balance`);
+      console.warn(`[MAIN] Airdrop failed: ${msg}`);
     }
   }
 }
 
-// ── Build a 0-SOL self-transfer transaction ───────────────────
 function buildSelfTransfer(payer: Keypair): Transaction {
   return new Transaction().add(
     SystemProgram.transfer({
@@ -84,12 +86,22 @@ function buildSelfTransfer(payer: Keypair): Transaction {
   );
 }
 
-// ── Urgency mapping by tx index ───────────────────────────────
 function urgencyForIndex(i: number): UrgencyLevel {
-  if (i < 3)  return "LOW";
-  if (i < 6)  return "MEDIUM";
-  if (i < 8)  return "HIGH";
+  if (i < 3) return "LOW";
+  if (i < 6) return "MEDIUM";
+  if (i < 8) return "HIGH";
   return "CRITICAL";
+}
+
+// Maps urgency to percentile label for tip_trail
+function percentileForUrgency(urgency: UrgencyLevel): "p25" | "p50" | "p75" | "p95" {
+  const map: Record<UrgencyLevel, "p25" | "p50" | "p75" | "p95"> = {
+    LOW:      "p25",
+    MEDIUM:   "p50",
+    HIGH:     "p75",
+    CRITICAL: "p95",
+  };
+  return map[urgency];
 }
 
 // ── Submit one transaction end-to-end ────────────────────────
@@ -105,33 +117,26 @@ async function runTransaction(
   console.log(`\n${"─".repeat(60)}`);
   console.log(`[MAIN] ${label} — urgency: ${urgency}`);
 
-  // ── 1. Get dynamic tip ────────────────────────────────────
+  // 1. Get dynamic tip
   const tipLamports = await calculateDynamicTip(urgency);
 
-  // ── 2. Get tip account ────────────────────────────────────
+  // 2. Get tip account
   const tipAccount = await getRandomTipAccount();
 
-  // ── 3. Build transaction ──────────────────────────────────
+  // 3. Build transaction
   const tx = buildSelfTransfer(payer);
 
-  // If fault injection: set an already-expired blockhash
   if (useStaleBlockhash) {
     console.log("[MAIN] FAULT: using pre-fetched stale blockhash (will expire)");
-    tx.recentBlockhash = "11111111111111111111111111111111"; // deliberately invalid
+    tx.recentBlockhash = "11111111111111111111111111111111";
     tx.feePayer        = payer.publicKey;
     tx.sign(payer);
   }
 
-  // ── 4. Submit via Jito ────────────────────────────────────
+  // 4. Submit via Jito
   let bundleResult;
   try {
-    bundleResult = await buildAndSubmitBundle(
-      connection,
-      tx,
-      payer,
-      tipLamports,
-      tipAccount,
-    );
+    bundleResult = await buildAndSubmitBundle(connection, tx, payer, tipLamports, tipAccount);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[MAIN] Bundle submission threw: ${msg}`);
@@ -139,38 +144,31 @@ async function runTransaction(
   }
 
   if (!bundleResult.success || !bundleResult.bundle_id) {
-    // Detect JitoLeaderSkipped at submission time
-    if (bundleResult.error === TransactionFailure.JitoLeaderSkipped) {
-      console.error(`[MAIN] ${label} — JitoLeaderSkipped at submission`);
-    } else {
-      console.error(`[MAIN] ${label} — bundle submission failed: ${bundleResult.error}`);
-    }
+    console.error(`[MAIN] ${label} — bundle submission failed: ${bundleResult.error}`);
     return;
   }
 
-  // The bundle_id doubles as the signature in fallback mode
   const signature = bundleResult.bundle_id;
 
-  // ── 5. Create lifecycle entry ─────────────────────────────
+  // 5. Create lifecycle entry
   createEntry(signature, bundleResult.submission_slot, tipLamports, bundleResult.bundle_id);
 
-  // ── 6. Poll for lifecycle states ─────────────────────────
+  // 6. Record first tip trail entry
+  const networkCtxInitial = await getNetworkContext(connection);
+  appendTipTrail(signature, tipLamports, networkCtxInitial.congestion_level, percentileForUrgency(urgency));
+
+  // 7. Poll for lifecycle states
   let finalState = TransactionState.Submitted;
 
   try {
     const result = await pollTransactionStatus(
       connection,
       signature,
-      (sig, state, slot, _ts) => {
-        updateState(sig, state, slot);
-      },
+      (sig, state, slot, _ts) => { updateState(sig, state, slot); },
     );
 
     finalState = result.finalState;
-
-    if (result.slot !== null) {
-      updateState(signature, finalState, result.slot);
-    }
+    if (result.slot !== null) updateState(signature, finalState, result.slot);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[MAIN] Polling threw for ${label}: ${msg}`);
@@ -179,12 +177,11 @@ async function runTransaction(
     recordFailure(signature, failure);
   }
 
-  // ── 7. Handle failure with AI agent ──────────────────────
+  // 8. Handle failure with AI agent
   if (finalState === TransactionState.Failed) {
     const entry = getEntry(signature);
     if (!entry) return;
 
-    // Determine failure type if not already set
     if (!entry.failure_type) {
       const failType = useStaleBlockhash
         ? TransactionFailure.ExpiredBlockhash
@@ -192,7 +189,6 @@ async function runTransaction(
       recordFailure(signature, failType);
     }
 
-    // Get current network context for AI
     const networkCtx = await getNetworkContext(connection);
 
     console.log(`\n[MAIN] Invoking Groq AI agent for ${label}...`);
@@ -201,28 +197,38 @@ async function runTransaction(
       const updatedEntry = getEntry(signature)!;
       const decision     = await reasonAboutFailure(updatedEntry, networkCtx);
 
-      // Persist full AI reasoning as JSON string
-      const decisionJson = JSON.stringify(decision, null, 2);
-      recordAiDecision(signature, decisionJson);
+      // Persist full structured agent decision record
+      appendAgentDecision(
+        signature,
+        updatedEntry.failure_type ?? TransactionFailure.Unknown,
+        networkCtx,
+        decision,
+      );
+
+      // Keep legacy string field too for backwards compat
+      recordAiDecision(signature, JSON.stringify(decision, null, 2));
 
       if (decision.should_retry && decision.confidence_score >= 0.6) {
-        console.log(
-          `[MAIN] AI APPROVED retry for ${label} — new tip: ${decision.new_tip_lamports} lamports`,
-        );
+        console.log(`[MAIN] AI APPROVED retry for ${label} — new tip: ${decision.new_tip_lamports} lamports`);
         incrementRetry(signature);
 
-        // One retry attempt with AI-recommended tip
         const retryTx      = buildSelfTransfer(payer);
         const retryTipAcct = await getRandomTipAccount();
+        const retryNetCtx  = await getNetworkContext(connection);
+
+        // Record retry tip in the trail
+        appendTipTrail(
+          signature,
+          decision.new_tip_lamports,
+          retryNetCtx.congestion_level,
+          percentileForUrgency(urgency),
+        );
 
         let retryBundle;
         try {
           retryBundle = await buildAndSubmitBundle(
-            connection,
-            retryTx,
-            payer,
-            decision.new_tip_lamports,
-            retryTipAcct,
+            connection, retryTx, payer,
+            decision.new_tip_lamports, retryTipAcct,
           );
         } catch (retryErr: unknown) {
           const msg = retryErr instanceof Error ? retryErr.message : String(retryErr);
@@ -240,20 +246,16 @@ async function runTransaction(
             retryBundle.bundle_id,
           );
 
-          // Poll the retry
           await pollTransactionStatus(
             connection,
             retryBundle.bundle_id,
-            (sig, state, slot, _ts) => {
-              updateState(sig, state, slot);
-            },
+            (sig, state, slot, _ts) => { updateState(sig, state, slot); },
           );
         }
       } else {
         console.log(
           `[MAIN] AI REJECTED retry for ${label}` +
-          ` — confidence: ${decision.confidence_score}` +
-          ` should_retry: ${decision.should_retry}`,
+          ` — confidence: ${decision.confidence_score} should_retry: ${decision.should_retry}`,
         );
       }
     } catch (agentErr: unknown) {
@@ -273,7 +275,6 @@ async function main(): Promise<void> {
 
   const connection = new Connection(RPC_URL, "confirmed");
 
-  // ── Startup slot confirmation ─────────────────────────────
   let startSlot = 0;
   try {
     startSlot = await connection.getSlot("confirmed");
@@ -284,7 +285,6 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // ── Initialise Geyser stream ─────────────────────────────
   await initGeyser();
   if (isGeyserAvailable()) {
     console.log(`[MAIN] Geyser stream active — latest slot: ${getLatestGeyserSlot()}`);
@@ -292,7 +292,6 @@ async function main(): Promise<void> {
     console.log("[MAIN] Geyser unavailable — using RPC polling fallback");
   }
 
-  // ── Load or generate wallet ───────────────────────────────
   let payer: Keypair;
   if (process.env.WALLET_PRIVATE_KEY) {
     try {
@@ -307,32 +306,25 @@ async function main(): Promise<void> {
     console.log("[MAIN] Generated fresh devnet keypair");
   }
 
-  // ── Ensure funded ─────────────────────────────────────────
   await ensureFunds(connection, payer);
 
-  // ── Pre-fetch stale blockhash for fault injection ─────────
-  // Fetch NOW, then use it AFTER tx 5 — it will have expired by then
   console.log("\n[MAIN] Pre-fetching blockhash for fault injection (will go stale)...");
   let staleBlockhash: string;
   try {
-    const bh     = await getFreshBlockhash(connection);
+    const bh       = await getFreshBlockhash(connection);
     staleBlockhash = bh.blockhash;
     console.log(`[MAIN] Stale blockhash pre-fetched: ${staleBlockhash.slice(0, 12)}...`);
-  } catch (err: unknown) {
+  } catch (_) {
     staleBlockhash = "11111111111111111111111111111111";
     console.warn("[MAIN] Could not pre-fetch stale blockhash — using known-invalid placeholder");
   }
-
-  // ── Run 10 transactions ───────────────────────────────────
-  let aiInterventionCount = 0;
 
   for (let i = 0; i < TX_COUNT; i++) {
     const isFaultTx = i === FAULT_INJECT_AT;
 
     if (isFaultTx) {
-      // After tx 5: wait 90s so the pre-fetched blockhash expires
       console.log(
-        `\n[MAIN] ⚠  FAULT INJECTION — waiting 90s for blockhash ${staleBlockhash.slice(0, 12)}... to expire`,
+        `\n[MAIN] ⚠  FAULT INJECTION — waiting 90s for blockhash to expire`,
       );
       await sleep(90_000);
     }
@@ -344,17 +336,21 @@ async function main(): Promise<void> {
       console.error(`[MAIN] TX #${i + 1} threw unexpectedly: ${msg}`);
     }
 
-    // Brief pause between transactions to avoid rate limiting
     if (i < TX_COUNT - 1) await sleep(2_000);
   }
 
-  // ── Save logs ─────────────────────────────────────────────
+  // Save lifecycle log
   console.log("\n" + "=".repeat(60));
   console.log("[MAIN] Saving lifecycle proof log...");
   saveLog();
 
-  // ── Print summary ─────────────────────────────────────────
-  const summary = getSummary();
+  // Generate AGENT_MEMORY.md
+  console.log("[MAIN] Generating agent memory report...");
+  const allEntries = getAllEntries();
+  const summary    = getSummary();
+  generateAgentMemory(allEntries, summary, startSlot);
+
+  // Print summary
   console.log("\n" + "=".repeat(60));
   console.log("=== FINAL SUMMARY — Made by TJS Code ===");
   console.log("=".repeat(60));

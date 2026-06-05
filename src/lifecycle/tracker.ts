@@ -12,22 +12,22 @@ import {
   TransactionState,
   TransactionFailure,
   SystemSummary,
+  TipTrailEntry,
+  AgentDecisionRecord,
+  NetworkContext,
+  AgentDecision,
+  CongestionLevel,
 } from "../types";
 
 const LOG_PATH = path.resolve(process.cwd(), "logs", "lifecycle.json");
 
-// In-memory store keyed by signature
 const entries = new Map<string, LifecycleEntry>();
 
-// ── Ensure logs/ directory exists ────────────────────────────
 function ensureLogDir(): void {
   const dir = path.dirname(LOG_PATH);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
-// ── Create a new entry when a tx is first submitted ──────────
 export function createEntry(
   signature: string,
   slotSubmitted: number,
@@ -41,23 +41,24 @@ export function createEntry(
 
   const entry: LifecycleEntry = {
     signature,
-    submitted_at:     new Date().toISOString(),
-    processed_at:     null,
-    confirmed_at:     null,
-    finalized_at:     null,
-    slot_submitted:   slotSubmitted,
-    slot_landed:      null,
+    submitted_at:      new Date().toISOString(),
+    processed_at:      null,
+    confirmed_at:      null,
+    finalized_at:      null,
+    slot_submitted:    slotSubmitted,
+    slot_landed:       null,
     tip_paid_lamports: tipPaidLamports,
-    retry_count:      0,
-    final_state:      TransactionState.Submitted,
-    bundle_id:        bundleId,
+    retry_count:       0,
+    final_state:       TransactionState.Submitted,
+    bundle_id:         bundleId,
+    tip_trail:         [],
+    agent_decisions:   [],
   };
 
   entries.set(signature, entry);
   console.log(`[TRACKER] Created entry for ${signature.slice(0, 12)}... slot: ${slotSubmitted}`);
 }
 
-// ── Update state with real timestamp when state changes ──────
 export function updateState(
   signature: string,
   state: TransactionState,
@@ -65,7 +66,7 @@ export function updateState(
 ): void {
   const entry = entries.get(signature);
   if (!entry) {
-    console.warn(`[TRACKER] No entry found for sig: ${signature.slice(0, 12)}... — cannot update state`);
+    console.warn(`[TRACKER] No entry found for sig: ${signature.slice(0, 12)}...`);
     return;
   }
 
@@ -87,68 +88,104 @@ export function updateState(
       break;
   }
 
-  if (slot != null && entry.slot_landed === null) {
-    entry.slot_landed = slot;
-  }
+  if (slot != null && entry.slot_landed === null) entry.slot_landed = slot;
 
   entries.set(signature, entry);
   console.log(`[TRACKER] ${signature.slice(0, 12)}... → ${state} at ${now}`);
 }
 
-// ── Classify Solana error strings into TransactionFailure ────
+// ── NEW: append one step to the tip trail ────────────────────
+export function appendTipTrail(
+  signature: string,
+  tipLamports: number,
+  congestionLevel: CongestionLevel,
+  percentile: "p25" | "p50" | "p75" | "p95",
+): void {
+  const entry = entries.get(signature);
+  if (!entry) return;
+  if (!entry.tip_trail) entry.tip_trail = [];
+
+  const attempt = entry.tip_trail.length + 1;
+  entry.tip_trail.push({
+    attempt,
+    tip_lamports:     tipLamports,
+    congestion_level: congestionLevel,
+    percentile,
+    submitted_at:     new Date().toISOString(),
+  });
+
+  entries.set(signature, entry);
+  console.log(
+    `[TRACKER] Tip trail #${attempt} — ${tipLamports} lamports ` +
+    `(${percentile}, congestion: ${congestionLevel})`,
+  );
+}
+
+// ── NEW: append a full structured agent decision record ───────
+export function appendAgentDecision(
+  signature: string,
+  failureType: string,
+  networkCtx: NetworkContext,
+  decision: AgentDecision,
+): void {
+  const entry = entries.get(signature);
+  if (!entry) return;
+  if (!entry.agent_decisions) entry.agent_decisions = [];
+
+  const gatePassed = decision.confidence_score >= 0.6 && decision.should_retry;
+
+  const record: AgentDecisionRecord = {
+    triggered_at:    new Date().toISOString(),
+    failure_type:    failureType,
+    network_context: {
+      current_slot:        networkCtx.current_slot,
+      avg_confirmation_ms: networkCtx.recent_avg_confirmation_ms,
+      congestion_level:    networkCtx.congestion_level,
+      recent_failure_rate: networkCtx.recent_failure_rate,
+    },
+    groq_response: {
+      should_retry:     decision.should_retry,
+      new_tip_lamports: decision.new_tip_lamports,
+      reason:           decision.reason,
+      confidence_score: decision.confidence_score,
+    },
+    gate_passed: gatePassed,
+  };
+
+  entry.agent_decisions.push(record);
+  entries.set(signature, entry);
+
+  console.log(
+    `[TRACKER] Agent decision recorded — confidence: ${decision.confidence_score} ` +
+    `gate_passed: ${gatePassed} new_tip: ${decision.new_tip_lamports} lamports`,
+  );
+}
+
 export function classifyFailure(errorMessage: string): TransactionFailure {
   const msg = errorMessage.toLowerCase();
-
-  if (msg.includes("blockhash not found") || msg.includes("expired")) {
-    return TransactionFailure.ExpiredBlockhash;
-  }
-  if (msg.includes("insufficient funds") || msg.includes("fee too low")) {
-    return TransactionFailure.FeeTooLow;
-  }
-  if (
-    msg.includes("compute budget") ||
-    msg.includes("exceeded compute") ||
-    msg.includes("computebudget")
-  ) {
-    return TransactionFailure.ComputeBudgetExceeded;
-  }
-  if (msg.includes("bundle") && msg.includes("fail")) {
-    return TransactionFailure.BundleExecutionFailure;
-  }
-  if (msg.includes("leader") && msg.includes("skip")) {
-    return TransactionFailure.JitoLeaderSkipped;
-  }
-  if (msg.includes("timeout") || msg.includes("timed out")) {
-    return TransactionFailure.Timeout;
-  }
-
+  if (msg.includes("blockhash not found") || msg.includes("expired")) return TransactionFailure.ExpiredBlockhash;
+  if (msg.includes("insufficient funds") || msg.includes("fee too low")) return TransactionFailure.FeeTooLow;
+  if (msg.includes("compute budget") || msg.includes("exceeded compute") || msg.includes("computebudget")) return TransactionFailure.ComputeBudgetExceeded;
+  if (msg.includes("bundle") && msg.includes("fail")) return TransactionFailure.BundleExecutionFailure;
+  if (msg.includes("leader") && msg.includes("skip")) return TransactionFailure.JitoLeaderSkipped;
+  if (msg.includes("timeout") || msg.includes("timed out")) return TransactionFailure.Timeout;
   return TransactionFailure.Unknown;
 }
 
-// ── Record a failure on an entry ─────────────────────────────
 export function recordFailure(
   signature: string,
   failure: TransactionFailure,
   aiDecision?: string,
 ): void {
   const entry = entries.get(signature);
-  if (!entry) {
-    console.warn(`[TRACKER] No entry for sig: ${signature.slice(0, 12)}... — cannot record failure`);
-    return;
-  }
-
-  entry.failure_type  = failure;
-  entry.final_state   = TransactionState.Failed;
+  if (!entry) return;
+  entry.failure_type = failure;
+  entry.final_state  = TransactionState.Failed;
   if (aiDecision) entry.ai_decision = aiDecision;
-
   entries.set(signature, entry);
-  console.log(
-    `[TRACKER] Failure recorded — sig: ${signature.slice(0, 12)}...` +
-    ` type: ${failure}`,
-  );
+  console.log(`[TRACKER] Failure recorded — sig: ${signature.slice(0, 12)}... type: ${failure}`);
 }
 
-// ── Increment retry count ─────────────────────────────────────
 export function incrementRetry(signature: string): void {
   const entry = entries.get(signature);
   if (!entry) return;
@@ -156,7 +193,6 @@ export function incrementRetry(signature: string): void {
   entries.set(signature, entry);
 }
 
-// ── Attach AI decision string to an entry ────────────────────
 export function recordAiDecision(signature: string, decision: string): void {
   const entry = entries.get(signature);
   if (!entry) return;
@@ -164,20 +200,19 @@ export function recordAiDecision(signature: string, decision: string): void {
   entries.set(signature, entry);
 }
 
-// ── Read an entry (for agent reasoning) ──────────────────────
 export function getEntry(signature: string): LifecycleEntry | undefined {
   return entries.get(signature);
 }
 
-// ── Save all entries to logs/lifecycle.json ───────────────────
+export function getAllEntries(): LifecycleEntry[] {
+  return Array.from(entries.values());
+}
+
 export function saveLog(): void {
   ensureLogDir();
   const allEntries = Array.from(entries.values());
-
-  // Sort by submitted_at descending
   allEntries.sort(
-    (a, b) =>
-      new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime(),
+    (a, b) => new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime(),
   );
 
   const payload = {
@@ -190,25 +225,16 @@ export function saveLog(): void {
   console.log(`[TRACKER] Log saved → ${LOG_PATH} (${allEntries.length} entries)`);
 }
 
-// ── Compute system summary ────────────────────────────────────
 export function getSummary(): SystemSummary {
   const all = Array.from(entries.values());
 
-  const successful = all.filter(
-    (e) => e.final_state === TransactionState.Finalized,
-  ).length;
+  const successful = all.filter((e) => e.final_state === TransactionState.Finalized).length;
+  const failed     = all.filter((e) => e.final_state === TransactionState.Failed).length;
 
-  const failed = all.filter(
-    (e) => e.final_state === TransactionState.Failed,
-  ).length;
-
-  // Compute avg confirmed→processed delta in ms
   const deltas: number[] = [];
   for (const e of all) {
     if (e.processed_at && e.confirmed_at) {
-      const delta =
-        new Date(e.confirmed_at).getTime() -
-        new Date(e.processed_at).getTime();
+      const delta = new Date(e.confirmed_at).getTime() - new Date(e.processed_at).getTime();
       if (delta >= 0) deltas.push(delta);
     }
   }
@@ -218,23 +244,21 @@ export function getSummary(): SystemSummary {
       ? Math.round(deltas.reduce((a, b) => a + b, 0) / deltas.length)
       : 0;
 
-  const totalTips = all.reduce((sum, e) => sum + e.tip_paid_lamports, 0);
-
-  const aiInterventions  = all.filter((e) => e.ai_decision != null).length;
-  const aiApproved       = all.filter(
-    (e) => e.ai_decision?.includes('"should_retry":true') ||
-           e.ai_decision?.includes('"should_retry": true'),
+  const totalTips       = all.reduce((sum, e) => sum + e.tip_paid_lamports, 0);
+  const aiInterventions = all.filter((e) => (e.agent_decisions?.length ?? 0) > 0).length;
+  const aiApproved      = all.filter(
+    (e) => e.agent_decisions?.some((d) => d.gate_passed) ?? false,
   ).length;
 
   return {
-    total_transactions:        all.length,
+    total_transactions:       all.length,
     successful,
     failed,
-    success_rate_pct:          all.length > 0 ? (successful / all.length) * 100 : 0,
-    avg_confirmation_ms:       avgConfirmMs,
-    total_tips_paid_lamports:  totalTips,
-    ai_interventions:          aiInterventions,
-    ai_approved_retries:       aiApproved,
-    ai_rejected_retries:       aiInterventions - aiApproved,
+    success_rate_pct:         all.length > 0 ? (successful / all.length) * 100 : 0,
+    avg_confirmation_ms:      avgConfirmMs,
+    total_tips_paid_lamports: totalTips,
+    ai_interventions:         aiInterventions,
+    ai_approved_retries:      aiApproved,
+    ai_rejected_retries:      aiInterventions - aiApproved,
   };
 }

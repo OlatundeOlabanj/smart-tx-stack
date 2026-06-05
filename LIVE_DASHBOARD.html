@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Smart TX Stack — Live Dashboard | TJS Code</title>
+<style>
+  :root {
+    --bg:       #05080f;
+    --surface:  #0d1117;
+    --card:     #111827;
+    --border:   #1f2937;
+    --gold:     #f59e0b;
+    --gold2:    #fbbf24;
+    --green:    #10b981;
+    --red:      #ef4444;
+    --yellow:   #f59e0b;
+    --blue:     #3b82f6;
+    --muted:    #6b7280;
+    --text:     #f3f4f6;
+    --subtext:  #9ca3af;
+    --radius:   15px;
+    --font:     'Space Grotesk', sans-serif;
+    --mono:     'JetBrains Mono', monospace;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-icon {
+    width: 36px; height: 36px; background: var(--gold);
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  }
+  .logo-icon svg { width: 20px; height: 20px; fill: var(--bg); }
+  .logo-text h1 { font-size: 16px; font-weight: 700; color: var(--text); }
+  .logo-text p  { font-size: 12px; color: var(--muted); }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .badge {
+    padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3);
+  }
+  .badge.warn { background: rgba(239,68,68,0.15); color: var(--red); border-color: rgba(239,68,68,0.3); }
+  .load-btn {
+    background: var(--gold); color: var(--bg); border: none; border-radius: var(--radius);
+    padding: 8px 20px; font-size: 13px; font-weight: 600; font-family: var(--font);
+    cursor: pointer; transition: opacity .2s;
+  }
+  .load-btn:hover { opacity: .85; }
+
+  /* ── Main layout ── */
+  main { max-width: 1200px; margin: 0 auto; padding: 32px; }
+
+  /* ── Drop zone ── */
+  #dropzone {
+    border: 2px dashed var(--border); border-radius: var(--radius);
+    padding: 60px; text-align: center; cursor: pointer;
+    transition: border-color .2s, background .2s;
+    background: var(--surface);
+  }
+  #dropzone.drag-over { border-color: var(--gold); background: rgba(245,158,11,.05); }
+  #dropzone svg { width: 48px; height: 48px; fill: var(--muted); margin-bottom: 16px; }
+  #dropzone h2 { font-size: 18px; color: var(--text); margin-bottom: 8px; }
+  #dropzone p  { font-size: 14px; color: var(--muted); }
+  #fileInput { display: none; }
+
+  /* ── Dashboard ── */
+  #dashboard { display: none; }
+
+  /* ── Stat cards ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px; margin-bottom: 32px;
+  }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+  }
+  .stat-card .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+  .stat-card .value { font-size: 28px; font-weight: 700; font-family: var(--mono); color: var(--gold); }
+  .stat-card .sub   { font-size: 11px; color: var(--subtext); margin-top: 4px; }
+  .stat-card.green .value { color: var(--green); }
+  .stat-card.red   .value { color: var(--red); }
+  .stat-card.blue  .value { color: var(--blue); }
+
+  /* ── Section title ── */
+  .section-title {
+    font-size: 13px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .1em; color: var(--muted);
+    margin-bottom: 16px; margin-top: 32px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* ── Transaction timeline ── */
+  .tx-timeline { display: flex; flex-direction: column; gap: 12px; }
+  .tx-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+    transition: border-color .2s;
+  }
+  .tx-card:hover { border-color: var(--gold); }
+  .tx-card.finalized { border-left: 3px solid var(--green); }
+  .tx-card.failed    { border-left: 3px solid var(--red); }
+  .tx-card.retried   { border-left: 3px solid var(--yellow); }
+
+  .tx-header {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 20px; cursor: pointer;
+  }
+  .tx-index {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--border); display: flex; align-items: center;
+    justify-content: center; font-size: 13px; font-weight: 700;
+    font-family: var(--mono); flex-shrink: 0;
+  }
+  .tx-index.finalized { background: rgba(16,185,129,.2); color: var(--green); }
+  .tx-index.failed    { background: rgba(239,68,68,.2); color: var(--red); }
+  .tx-index.retried   { background: rgba(245,158,11,.2); color: var(--yellow); }
+
+  .tx-meta { flex: 1; min-width: 0; }
+  .tx-sig  { font-family: var(--mono); font-size: 12px; color: var(--subtext); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tx-state { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .tx-state.finalized { color: var(--green); }
+  .tx-state.failed    { color: var(--red); }
+
+  .tx-tip-badge {
+    font-family: var(--mono); font-size: 11px;
+    padding: 3px 10px; border-radius: 20px;
+    background: rgba(245,158,11,.15); color: var(--gold);
+    border: 1px solid rgba(245,158,11,.25); white-space: nowrap;
+  }
+  .tx-time { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .tx-chevron { color: var(--muted); transition: transform .2s; flex-shrink: 0; }
+  .tx-card.open .tx-chevron { transform: rotate(180deg); }
+
+  .tx-body { display: none; padding: 0 20px 16px; border-top: 1px solid var(--border); }
+  .tx-card.open .tx-body { display: block; }
+
+  /* ── Lifecycle stages ── */
+  .lifecycle-row {
+    display: flex; gap: 0; margin: 16px 0;
+    background: var(--surface); border-radius: 10px; overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .lc-stage {
+    flex: 1; padding: 10px 12px; text-align: center;
+    position: relative;
+  }
+  .lc-stage + .lc-stage::before {
+    content: ''; position: absolute; left: 0; top: 25%; bottom: 25%;
+    width: 1px; background: var(--border);
+  }
+  .lc-stage .lc-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
+  .lc-stage .lc-time  { font-family: var(--mono); font-size: 11px; color: var(--subtext); }
+  .lc-stage.reached .lc-label { color: var(--green); }
+  .lc-stage.reached .lc-time  { color: var(--text); }
+  .lc-stage.missed  .lc-time  { color: var(--muted); font-style: italic; }
+
+  /* ── Tip trail ── */
+  .tip-trail { margin: 12px 0; }
+  .tip-trail-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+  .tip-trail-bars { display: flex; gap: 6px; align-items: flex-end; height: 48px; }
+  .tip-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .tip-bar {
+    width: 100%; border-radius: 4px 4px 0 0;
+    background: var(--gold); opacity: .7;
+    min-height: 4px; transition: opacity .2s;
+  }
+  .tip-bar:nth-child(1) { opacity: 1; }
+  .tip-bar-label { font-family: var(--mono); font-size: 10px; color: var(--subtext); }
+  .tip-single { font-family: var(--mono); font-size: 12px; color: var(--gold); }
+
+  /* ── Agent decision card ── */
+  .agent-card {
+    background: var(--surface); border: 1px solid rgba(245,158,11,.2);
+    border-radius: 10px; padding: 14px; margin: 12px 0;
+  }
+  .agent-card-title {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--gold); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .confidence-bar-wrap { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .confidence-bar-bg {
+    flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;
+  }
+  .confidence-bar-fill { height: 100%; border-radius: 3px; background: var(--green); }
+  .confidence-bar-fill.low  { background: var(--red); }
+  .confidence-bar-fill.mid  { background: var(--yellow); }
+  .confidence-label { font-family: var(--mono); font-size: 11px; color: var(--subtext); white-space: nowrap; }
+  .agent-reason {
+    font-size: 12px; color: var(--subtext); line-height: 1.6;
+    font-style: italic; border-left: 2px solid var(--gold);
+    padding-left: 10px; margin: 8px 0;
+  }
+  .agent-verdict {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600; padding: 3px 10px;
+    border-radius: 20px;
+  }
+  .agent-verdict.approved { background: rgba(16,185,129,.15); color: var(--green); border: 1px solid rgba(16,185,129,.3); }
+  .agent-verdict.rejected { background: rgba(239,68,68,.15); color: var(--red); border: 1px solid rgba(239,68,68,.3); }
+  .agent-verdict.blocked  { background: rgba(245,158,11,.15); color: var(--yellow); border: 1px solid rgba(245,158,11,.3); }
+
+  /* ── Tip chart ── */
+  .chart-wrap {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px; margin-bottom: 20px;
+  }
+  .chart-title { font-size: 14px; font-weight: 600; margin-bottom: 20px; color: var(--text); }
+  .bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 120px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .bar-col .bar {
+    width: 100%; border-radius: 4px 4px 0 0;
+    background: linear-gradient(to top, var(--gold), var(--gold2));
+    min-height: 4px; transition: height .3s ease;
+  }
+  .bar-col .bar.failed { background: linear-gradient(to top, #991b1b, var(--red)); }
+  .bar-col .bar-val { font-family: var(--mono); font-size: 10px; color: var(--subtext); }
+  .bar-col .bar-lbl { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center; padding: 32px;
+    font-size: 12px; color: var(--muted);
+    border-top: 1px solid var(--border); margin-top: 48px;
+  }
+  footer a { color: var(--gold); text-decoration: none; }
+
+  /* ── Responsive ── */
+  @media (max-width: 640px) {
+    main { padding: 16px; }
+    header { padding: 14px 16px; }
+    .logo-text p { display: none; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .tx-time { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+    </div>
+    <div class="logo-text">
+      <h1>Smart TX Stack</h1>
+      <p>TJS Code · Superteam Nigeria Bounty</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <span id="statusBadge" class="badge warn">No data loaded</span>
+    <label class="load-btn" for="fileInput">Load lifecycle.json</label>
+    <input type="file" id="fileInput" accept=".json"/>
+  </div>
+</header>
+
+<main>
+  <!-- Drop zone -->
+  <div id="dropzone">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11zm-6-7l-3 3 1.4 1.4L13 16v4h2v-4l1.6 1.4L18 16l-3-3-3 3z"/></svg>
+    <h2>Drop lifecycle.json here</h2>
+    <p>Or click "Load lifecycle.json" in the top right — generated by running <code style="color:var(--gold)">npx ts-node src/index.ts</code></p>
+  </div>
+
+  <!-- Dashboard (hidden until data loaded) -->
+  <div id="dashboard">
+    <div class="stats-grid" id="statsGrid"></div>
+
+    <div class="section-title">Tip Distribution Per Transaction</div>
+    <div class="chart-wrap">
+      <div class="bar-chart" id="tipChart"></div>
+    </div>
+
+    <div class="section-title">Transaction Timeline</div>
+    <div class="tx-timeline" id="txTimeline"></div>
+  </div>
+</main>
+
+<footer>
+  Made by <a href="https://github.com/OlatundeOlabanj" target="_blank">TJS Code</a> &nbsp;·&nbsp;
+  <a href="https://github.com/OlatundeOlabanj/smart-tx-stack" target="_blank">github.com/OlatundeOlabanj/smart-tx-stack</a> &nbsp;·&nbsp;
+  Superteam Nigeria Advanced Infrastructure Challenge
+</footer>
+
+<script>
+// ── File loading ──────────────────────────────────────────────
+const dropzone  = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const dashboard = document.getElementById('dashboard');
+
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) readFile(file);
+});
+
+dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+dropzone.addEventListener('dragleave', ()  => dropzone.classList.remove('drag-over'));
+dropzone.addEventListener('drop', (e) => {
+  e.preventDefault(); dropzone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) readFile(file);
+});
+dropzone.addEventListener('click', () => fileInput.click());
+
+function readFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      renderDashboard(data);
+    } catch (err) {
+      alert('Could not parse JSON: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ── Render ────────────────────────────────────────────────────
+function renderDashboard(data) {
+  const entries = [...(data.entries || [])].sort(
+    (a, b) => new Date(a.submitted_at) - new Date(b.submitted_at)
+  );
+
+  dropzone.style.display = 'none';
+  dashboard.style.display = 'block';
+
+  const badge = document.getElementById('statusBadge');
+  const finalized = entries.filter(e => e.final_state === 'Finalized').length;
+  const failed    = entries.filter(e => e.final_state === 'Failed').length;
+  badge.textContent = `${finalized}/${entries.length} Finalized`;
+  badge.className = 'badge ' + (failed > 0 ? 'warn' : '');
+
+  renderStats(entries);
+  renderTipChart(entries);
+  renderTimeline(entries);
+}
+
+function renderStats(entries) {
+  const finalized  = entries.filter(e => e.final_state === 'Finalized').length;
+  const failed     = entries.filter(e => e.final_state === 'Failed').length;
+  const totalTips  = entries.reduce((s, e) => s + (e.tip_paid_lamports || 0), 0);
+  const retried    = entries.filter(e => e.retry_count > 0).length;
+  const aiCount    = entries.filter(e => (e.agent_decisions || []).length > 0).length;
+  const rate       = entries.length > 0 ? ((finalized / entries.length) * 100).toFixed(0) : 0;
+
+  const deltas = entries
+    .filter(e => e.processed_at && e.confirmed_at)
+    .map(e => new Date(e.confirmed_at) - new Date(e.processed_at));
+  const avgConf = deltas.length > 0
+    ? Math.round(deltas.reduce((a, b) => a + b, 0) / deltas.length) : 0;
+
+  const stats = [
+    { label: 'Success Rate',       value: rate + '%',       sub: `${finalized} of ${entries.length} finalized`, cls: 'green' },
+    { label: 'Failed',             value: failed,            sub: 'transactions',   cls: failed > 0 ? 'red' : '' },
+    { label: 'Total Tips',         value: (totalTips / 1000).toFixed(1) + 'k', sub: 'lamports paid', cls: '' },
+    { label: 'Avg Confirm',        value: avgConf + 'ms',    sub: 'processed→confirmed', cls: 'blue' },
+    { label: 'AI Interventions',   value: aiCount,           sub: 'agent decisions made', cls: '' },
+    { label: 'Retried',            value: retried,           sub: 'transactions', cls: retried > 0 ? '' : 'green' },
+  ];
+
+  document.getElementById('statsGrid').innerHTML = stats.map(s => `
+    <div class="stat-card ${s.cls}">
+      <div class="label">${s.label}</div>
+      <div class="value">${s.value}</div>
+      <div class="sub">${s.sub}</div>
+    </div>
+  `).join('');
+}
+
+function renderTipChart(entries) {
+  if (!entries.length) return;
+  const maxTip = Math.max(...entries.map(e => e.tip_paid_lamports || 1));
+
+  document.getElementById('tipChart').innerHTML = entries.map((e, i) => {
+    const pct    = Math.max(((e.tip_paid_lamports || 0) / maxTip) * 100, 3);
+    const isFail = e.final_state === 'Failed';
+    const label  = (e.tip_paid_lamports / 1000).toFixed(1) + 'k';
+    return `
+      <div class="bar-col" title="TX #${i+1}: ${e.tip_paid_lamports} lamports — ${e.final_state}">
+        <div class="bar-val">${label}</div>
+        <div class="bar ${isFail ? 'failed' : ''}" style="height:${pct}%"></div>
+        <div class="bar-lbl">#${i+1}</div>
+      </div>`;
+  }).join('');
+}
+
+function renderTimeline(entries) {
+  document.getElementById('txTimeline').innerHTML = entries.map((e, i) => {
+    const isFinalized = e.final_state === 'Finalized';
+    const isFailed    = e.final_state === 'Failed';
+    const hasRetry    = e.retry_count > 0;
+    const stateClass  = isFailed ? 'failed' : hasRetry ? 'retried' : 'finalized';
+
+    const time = e.submitted_at
+      ? new Date(e.submitted_at).toLocaleTimeString()
+      : '—';
+
+    return `
+    <div class="tx-card ${stateClass}" id="txcard-${i}">
+      <div class="tx-header" onclick="toggleCard(${i})">
+        <div class="tx-index ${stateClass}">${i + 1}</div>
+        <div class="tx-meta">
+          <div class="tx-state ${isFinalized ? 'finalized' : 'failed'}">${e.final_state}${hasRetry ? ' (retried)' : ''}</div>
+          <div class="tx-sig">${e.signature || '—'}</div>
+        </div>
+        <span class="tx-tip-badge">${(e.tip_paid_lamports || 0).toLocaleString()} lam</span>
+        <span class="tx-time">${time}</span>
+        <svg class="tx-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="tx-body">
+        ${renderLifecycleRow(e)}
+        ${renderTipTrail(e)}
+        ${renderAgentDecisions(e)}
+        <div style="margin-top:12px">
+          <span style="font-size:11px;color:var(--muted)">Slot submitted: </span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--subtext)">${e.slot_submitted || '—'}</span>
+          ${e.slot_landed ? `&nbsp;&nbsp;<span style="font-size:11px;color:var(--muted)">landed: </span><span style="font-family:var(--mono);font-size:11px;color:var(--subtext)">${e.slot_landed}</span>` : ''}
+          ${e.failure_type ? `&nbsp;&nbsp;<span style="font-size:11px;color:var(--red)">${e.failure_type}</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderLifecycleRow(e) {
+  const stages = [
+    { key: 'submitted_at',  label: 'Submitted'  },
+    { key: 'processed_at',  label: 'Processed'  },
+    { key: 'confirmed_at',  label: 'Confirmed'  },
+    { key: 'finalized_at',  label: 'Finalized'  },
+  ];
+  return `<div class="lifecycle-row">${stages.map(s => {
+    const reached = !!e[s.key];
+    const t = reached
+      ? new Date(e[s.key]).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      : '—';
+    return `<div class="lc-stage ${reached ? 'reached' : 'missed'}">
+      <div class="lc-label">${s.label}</div>
+      <div class="lc-time">${t}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function renderTipTrail(e) {
+  const trail = e.tip_trail || [];
+  if (!trail.length) {
+    return `<div class="tip-trail">
+      <div class="tip-trail-title">Tip Trail</div>
+      <div class="tip-single">${(e.tip_paid_lamports || 0).toLocaleString()} lamports <span style="color:var(--muted);font-size:10px">(single attempt)</span></div>
+    </div>`;
+  }
+  const maxT = Math.max(...trail.map(t => t.tip_lamports), 1);
+  return `<div class="tip-trail">
+    <div class="tip-trail-title">Tip Trail (${trail.length} attempt${trail.length > 1 ? 's' : ''})</div>
+    <div class="tip-trail-bars">
+      ${trail.map(t => {
+        const h = Math.max((t.tip_lamports / maxT) * 40, 4);
+        return `<div class="tip-bar-wrap">
+          <div class="tip-bar" style="height:${h}px" title="${t.tip_lamports} lam — ${t.congestion_level}"></div>
+          <div class="tip-bar-label">${(t.tip_lamports/1000).toFixed(1)}k</div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+function renderAgentDecisions(e) {
+  const decisions = e.agent_decisions || [];
+  if (!decisions.length) return '';
+
+  return decisions.map(d => {
+    const conf = d.groq_response.confidence_score;
+    const confPct = Math.round(conf * 100);
+    const confClass = conf >= 0.8 ? '' : conf >= 0.6 ? 'mid' : 'low';
+    const verdict = d.gate_passed
+      ? `<span class="agent-verdict approved">Retry Approved</span>`
+      : d.groq_response.should_retry
+        ? `<span class="agent-verdict blocked">Blocked by Confidence Gate</span>`
+        : `<span class="agent-verdict rejected">Retry Rejected</span>`;
+
+    return `<div class="agent-card">
+      <div class="agent-card-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--gold)"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 15h-2v-2h2zm0-4h-2V7h2z"/></svg>
+        Groq Agent Decision &nbsp;·&nbsp; ${d.failure_type}
+      </div>
+      <div class="confidence-bar-wrap">
+        <span style="font-size:11px;color:var(--muted);white-space:nowrap">Confidence</span>
+        <div class="confidence-bar-bg">
+          <div class="confidence-bar-fill ${confClass}" style="width:${confPct}%"></div>
+        </div>
+        <span class="confidence-label">${confPct}%</span>
+      </div>
+      <div class="agent-reason">${d.groq_response.reason}</div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px">
+        ${verdict}
+        <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">new tip: ${(d.groq_response.new_tip_lamports||0).toLocaleString()} lam</span>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">${d.network_context?.congestion_level ?? ''} congestion</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCard(i) {
+  const card = document.getElementById('txcard-' + i);
+  card.classList.toggle('open');
+}
+</script>
+</body>
+</html>

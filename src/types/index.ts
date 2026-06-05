@@ -25,122 +25,90 @@ export enum TransactionFailure {
 export type CongestionLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export type UrgencyLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
+// ── NEW: one entry in the tip escalation trail ────────────────
+export interface TipTrailEntry {
+  attempt:        number;
+  tip_lamports:   number;
+  congestion_level: CongestionLevel;
+  percentile:     "p25" | "p50" | "p75" | "p95";
+  submitted_at:   string;
+}
+
+// ── NEW: structured agent decision stored per-tx ─────────────
+export interface AgentDecisionRecord {
+  triggered_at:   string;
+  failure_type:   string;
+  network_context: {
+    current_slot:            number;
+    avg_confirmation_ms:     number;
+    congestion_level:        CongestionLevel;
+    recent_failure_rate:     number;
+  };
+  groq_response: {
+    should_retry:      boolean;
+    new_tip_lamports:  number;
+    reason:            string;
+    confidence_score:  number;
+  };
+  gate_passed: boolean; // true if confidence >= 0.6 AND should_retry = true
+}
+
 export interface LifecycleEntry {
-  /** Base58-encoded transaction signature */
-  signature: string;
-
-  /** ISO 8601 timestamp when tx was submitted */
-  submitted_at: string;
-
-  /** ISO 8601 timestamp when tx reached 'processed' commitment — null until reached */
-  processed_at: string | null;
-
-  /** ISO 8601 timestamp when tx reached 'confirmed' commitment — null until reached */
-  confirmed_at: string | null;
-
-  /** ISO 8601 timestamp when tx reached 'finalized' commitment — null until reached */
-  finalized_at: string | null;
-
-  /** Slot number at submission time */
-  slot_submitted: number;
-
-  /** Slot number when tx landed on-chain — null if not yet landed */
-  slot_landed: number | null;
-
-  /** Jito tip paid in lamports */
+  signature:         string;
+  submitted_at:      string;
+  processed_at:      string | null;
+  confirmed_at:      string | null;
+  finalized_at:      string | null;
+  slot_submitted:    number;
+  slot_landed:       number | null;
   tip_paid_lamports: number;
-
-  /** Failure type if tx failed */
-  failure_type?: TransactionFailure;
-
-  /** Full AI reasoning from Groq agent — populated on retry decisions */
-  ai_decision?: string;
-
-  /** How many times this tx has been retried */
-  retry_count: number;
-
-  /** Final resolved state */
-  final_state: TransactionState;
-
-  /** Jito bundle ID returned at submission */
-  bundle_id?: string;
+  failure_type?:     TransactionFailure;
+  ai_decision?:      string;           // kept for backwards compat
+  agent_decisions?:  AgentDecisionRecord[]; // NEW: full structured log
+  tip_trail?:        TipTrailEntry[];        // NEW: tip escalation history
+  retry_count:       number;
+  final_state:       TransactionState;
+  bundle_id?:        string;
 }
 
 export interface AgentDecision {
-  /** Whether the agent recommends retrying this transaction */
-  should_retry: boolean;
-
-  /** Recommended tip in lamports for the retry attempt */
-  new_tip_lamports: number;
-
-  /** Agent's full reasoning string */
-  reason: string;
-
-  /**
-   * Confidence score 0–1.
-   * If confidence_score < 0.6, retry must NOT proceed regardless of should_retry.
-   */
-  confidence_score: number;
+  should_retry:      boolean;
+  new_tip_lamports:  number;
+  reason:            string;
+  confidence_score:  number;
 }
 
 export interface NetworkContext {
-  /** Current slot on the network */
-  current_slot: number;
-
-  /**
-   * Rolling average of recent processed→confirmed deltas in milliseconds.
-   * 0 if no data yet.
-   */
+  current_slot:               number;
   recent_avg_confirmation_ms: number;
-
-  /**
-   * Fraction of recent transactions that failed (0.0 – 1.0).
-   * 0 if no data yet.
-   */
-  recent_failure_rate: number;
-
-  /** Human-readable congestion classification */
-  congestion_level: CongestionLevel;
+  recent_failure_rate:        number;
+  congestion_level:           CongestionLevel;
 }
 
 export interface BundleSubmissionResult {
-  /** Jito bundle UUID */
-  bundle_id: string;
-
-  /** Slot at which the bundle was submitted */
+  bundle_id:       string;
   submission_slot: number;
-
-  /** Whether submission call succeeded (does NOT mean tx landed) */
-  success: boolean;
-
-  /** Error message if success = false */
-  error?: string;
-
-  /** Whether we fell back to standard (non-Jito) submission */
-  used_fallback: boolean;
+  success:         boolean;
+  error?:          string;
+  used_fallback:   boolean;
 }
 
 export interface TipFloorData {
-  /** 25th percentile tip in lamports */
-  p25: number;
-  /** 50th percentile tip in lamports */
-  p50: number;
-  /** 75th percentile tip in lamports */
-  p75: number;
-  /** 95th percentile tip in lamports */
-  p95: number;
-  /** Epoch timestamp (ms) when this data was fetched */
+  p25:        number;
+  p50:        number;
+  p75:        number;
+  p95:        number;
   fetched_at: number;
 }
 
 export interface SystemSummary {
-  total_transactions: number;
-  successful: number;
-  failed: number;
-  success_rate_pct: number;
-  avg_confirmation_ms: number;
+  total_transactions:       number;
+  successful:               number;
+  failed:                   number;
+  success_rate_pct:         number;
+  avg_confirmation_ms:      number;
   total_tips_paid_lamports: number;
-  ai_interventions: number;
-  ai_approved_retries: number;
-  ai_rejected_retries: number;
+  ai_interventions:         number;
+  ai_approved_retries:      number;
+  ai_rejected_retries:      number;
 }
