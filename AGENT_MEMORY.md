@@ -4,7 +4,7 @@
 
 ---
 
-## Run Summary — 2026-06-05T12:25:16.561Z
+## Run Summary — 2026-06-06T07:00:58.842Z
 
 | Metric | Value |
 |--------|-------|
@@ -12,9 +12,9 @@
 | Finalized | 10 |
 | Failed | 0 |
 | Success Rate | 100.0% |
-| Avg Confirmation | 1844ms |
-| Total Tips Paid | 223,832 lamports |
-| Slot Range | 467320576 – 467321296 (720 slots) |
+| Avg Confirmation | 1757ms |
+| Total Tips Paid | 152,154 lamports |
+| Slot Range | 467497400 – 467498102 (702 slots) |
 | AI Interventions | 0 |
 | AI Approved Retries | 0 |
 | AI Rejected Retries | 0 |
@@ -24,7 +24,7 @@
 ## Agent Observations
 
 ### Tip Behaviour
-- Tip range this run: **1,000 – 118,571 lamports** (avg: 22,383)
+- Tip range this run: **1 – 100,000 lamports** (avg: 15,215)
 - Transactions that required tip escalation: **0** of 10
 - Avg agent confidence score: **N/A** — moderate certainty, monitor closely
 - Confidence gate did not block any retries this run
@@ -32,7 +32,7 @@
 ### Network Patterns Detected
 - Dominant congestion level: **UNKNOWN**
 - Congestion distribution: no AI-triggered network reads
-- Avg processed→confirmed delta: **1844ms** (moderate)
+- Avg processed→confirmed delta: **1757ms** (moderate)
 
 ### Failure Events
 - None

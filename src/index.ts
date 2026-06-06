@@ -47,6 +47,7 @@ const RPC_URL         = process.env.HELIUS_RPC_URL ?? process.env.SOLANA_RPC_URL
 const MIN_BALANCE     = 0.1 * LAMPORTS_PER_SOL;
 const TX_COUNT        = 10;
 const FAULT_INJECT_AT = 5;
+const FAULT_FEE_TOO_LOW_AT = 2;
 
 if (!RPC_URL) {
   console.error("[MAIN] HELIUS_RPC_URL is not set. Aborting.");
@@ -118,7 +119,11 @@ async function runTransaction(
   console.log(`[MAIN] ${label} — urgency: ${urgency}`);
 
   // 1. Get dynamic tip
-  const tipLamports = await calculateDynamicTip(urgency);
+  let tipLamports = await calculateDynamicTip(urgency);
+  if (txIndex === FAULT_FEE_TOO_LOW_AT) {
+    console.log("[MAIN] FAULT: overriding tip to 1 lamport to force failure");
+    tipLamports = 1;
+  }
 
   // 2. Get tip account
   const tipAccount = await getRandomTipAccount();
