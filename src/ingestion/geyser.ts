@@ -67,9 +67,9 @@ export async function initGeyser(): Promise<void> {
         resolve();
       });
 
-      // Subscribe to slot updates
+      // Subscribe to slot updates (v5 camelCase format)
       const req = {
-        slots: { default: {} },
+        slots: { incoming_slots: {} },
         accounts: {},
         transactions: {},
         transactionsStatus: {},
