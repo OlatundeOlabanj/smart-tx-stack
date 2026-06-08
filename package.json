@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@solana/web3.js": "^1.95.4",
-    "@triton-one/yellowstone-grpc": "^5.0.8",
+    "@triton-one/yellowstone-grpc": "^4.0.2",
     "bs58": "^5.0.0",
     "dotenv": "^16.4.5",
     "groq-sdk": "^0.7.0",

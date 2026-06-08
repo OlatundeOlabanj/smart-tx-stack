@@ -1,18 +1,13 @@
 // ============================================================
 // smart-tx-stack — src/ingestion/geyser.ts
-// Yellowstone gRPC stream via SolInfra (v5 API)
+// Yellowstone gRPC stream via SolInfra (v4.0.2 API)
 // Made by TJS Code
 // ============================================================
 
 import Client, { CommitmentLevel } from "@triton-one/yellowstone-grpc";
 
-const GRPC_ENDPOINT = process.env.SOLINFRA_GRPC_ENDPOINT ?? "fra.grpc.solinfra.dev:443";
+const GRPC_ENDPOINT = process.env.SOLINFRA_GRPC_ENDPOINT ?? "https://fra.grpc.solinfra.dev:443";
 const GRPC_TOKEN    = process.env.SOLINFRA_GRPC_KEY ?? "";
-
-export interface SlotUpdate {
-  slot:   number;
-  status: "processed" | "confirmed" | "finalized";
-}
 
 let geyserAvailable = false;
 let latestSlot      = 0;
@@ -26,19 +21,16 @@ export async function initGeyser(): Promise<void> {
     return;
   }
 
-  console.log("[GEYSER] Initialising Yellowstone gRPC stream...");
+  console.log("[GEYSER] Initialising Yellowstone gRPC stream via SolInfra...");
 
   try {
-    // v5 API — pass token as third arg (x-token header)
-    const client = new Client(GRPC_ENDPOINT, GRPC_TOKEN, undefined); // auth via token arg
-    // Channel options below (x-token not needed as separate header)
+    // v4 API — no connect() call needed, subscribe directly
+    const client = new Client(GRPC_ENDPOINT, GRPC_TOKEN, undefined);
+    const stream  = await client.subscribe();
 
-    await client.connect();
-    const stream = await client.subscribe();
-
-    await new Promise<void>((resolve, reject) => {
+    await new Promise<void>((resolve) => {
       const timeout = setTimeout(() => {
-        console.log("[GEYSER] Warmup complete — closing init stream");
+        console.log(`[GEYSER] Warmup complete — latest slot: ${latestSlot}`);
         stream.end();
         resolve();
       }, 5_000);
@@ -64,11 +56,14 @@ export async function initGeyser(): Promise<void> {
 
       stream.on("end", () => {
         clearTimeout(timeout);
+        if (geyserAvailable) {
+          console.log(`[GEYSER] Stream active — latest slot: ${latestSlot}`);
+        }
         resolve();
       });
 
-      // Subscribe to slot updates (v5 camelCase format)
-      const req = {
+      // Subscribe to slot updates
+      stream.write({
         slots: { incoming_slots: {} },
         accounts: {},
         transactions: {},
@@ -78,10 +73,7 @@ export async function initGeyser(): Promise<void> {
         entry: {},
         accountsDataSlice: [],
         commitment: CommitmentLevel.CONFIRMED,
-        ping: undefined,
-      };
-
-      stream.write(req, (err: Error | null | undefined) => {
+      }, (err: Error | null | undefined) => {
         if (err) {
           clearTimeout(timeout);
           console.warn(`[GEYSER] Subscribe write error: ${err.message}`);
@@ -90,13 +82,6 @@ export async function initGeyser(): Promise<void> {
         }
       });
     });
-
-    if (geyserAvailable) {
-      console.log(`[GEYSER] Stream active — latest slot: ${latestSlot}`);
-    } else {
-      console.warn("[GEYSER] Could not connect: failed to connect to gRPC endpoint");
-      console.warn("[GEYSER] Falling back to RPC polling");
-    }
 
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
