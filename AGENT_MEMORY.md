@@ -4,19 +4,19 @@
 
 ---
 
-## Run Summary — 2026-06-08T10:05:57.059Z
+## Run Summary — 2026-06-19T12:22:39.959Z
 
 | Metric | Value |
 |--------|-------|
 | Total Transactions | 10 |
-| Finalized | 10 |
-| Failed | 0 |
-| Success Rate | 100.0% |
-| Avg Confirmation | 0ms |
-| Total Tips Paid | 203,149 lamports |
-| Slot Range | 467983087 – 467983920 (833 slots) |
-| AI Interventions | 0 |
-| AI Approved Retries | 0 |
+| Finalized | 9 |
+| Failed | 1 |
+| Success Rate | 90.0% |
+| Avg Confirmation | 1844ms |
+| Total Tips Paid | 221,657 lamports |
+| Slot Range | 470516247 – 470516952 (705 slots) |
+| AI Interventions | 1 |
+| AI Approved Retries | 1 |
 | AI Rejected Retries | 0 |
 
 ---
@@ -24,20 +24,23 @@
 ## Agent Observations
 
 ### Tip Behaviour
-- Tip range this run: **1 – 113,376 lamports** (avg: 20,315)
+- Tip range this run: **1,000 – 100,000 lamports** (avg: 22,166)
 - Transactions that required tip escalation: **0** of 10
-- Avg agent confidence score: **N/A** — moderate certainty, monitor closely
+- Avg agent confidence score: **0.90** — high certainty across all decisions
 - Confidence gate did not block any retries this run
 
 ### Network Patterns Detected
-- Dominant congestion level: **UNKNOWN**
-- Congestion distribution: no AI-triggered network reads
-- Avg processed→confirmed delta: **0ms** (healthy)
+- Dominant congestion level: **LOW**
+- Congestion distribution: LOW: 1×
+- Avg processed→confirmed delta: **1844ms** (moderate)
 
 ### Failure Events
-- None
+- TX sig `fault-tx3-178187...` — FeeTooLow
 
+### Sample Agent Reasoning
 
+**Decision 1** (FeeTooLow, confidence: 0.9)
+> "The failure type 'FeeTooLow' is retryable, and the current network congestion level is LOW, making it a good time to retry. Given the recent average confirmation time of 0ms and a failure rate of 0.0%, a higher tip of 2000 lamports is likely to succeed. The cost of retrying is low compared to the potential benefit of a successful transaction."
 
 ---
 

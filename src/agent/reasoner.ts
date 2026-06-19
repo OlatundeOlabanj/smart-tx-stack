@@ -8,7 +8,7 @@
 import Groq from "groq-sdk";
 import { LifecycleEntry, NetworkContext, AgentDecision, TransactionFailure } from "../types";
 
-const GROQ_MODEL      = "llama3-70b-8192";
+const GROQ_MODEL      = "llama-3.3-70b-versatile";
 const MIN_CONFIDENCE  = 0.6; // below this, never retry regardless of AI output
 
 let groqClient: Groq | null = null;

@@ -81,6 +81,7 @@ export async function pollTransactionStatus(
   connection: Connection,
   signature: string,
   onStateChange: StateChangeCallback,
+  timeoutMs = TIMEOUT_MS,
 ): Promise<PollResult> {
   const startTs  = Date.now();
   let lastState: TransactionState | null = null;
@@ -94,7 +95,7 @@ export async function pollTransactionStatus(
     const elapsed = Date.now() - startTs;
 
     // ── Hard timeout ─────────────────────────────────────────
-    if (elapsed >= TIMEOUT_MS) {
+    if (elapsed >= timeoutMs) {
       console.warn(
         `[POLLER] TIMEOUT after ${elapsed}ms — sig: ${signature.slice(0, 12)}...`,
       );

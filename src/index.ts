@@ -43,11 +43,11 @@ import {
 } from "./types";
 
 // ── Config ───────────────────────────────────────────────────
-const RPC_URL         = process.env.HELIUS_RPC_URL ?? process.env.SOLANA_RPC_URL ?? "";
-const MIN_BALANCE     = 0.1 * LAMPORTS_PER_SOL;
-const TX_COUNT        = 10;
-const FAULT_INJECT_AT = 5;
-const FAULT_FEE_TOO_LOW_AT = 2;
+const RPC_URL              = process.env.HELIUS_RPC_URL ?? process.env.SOLANA_RPC_URL ?? "";
+const MIN_BALANCE          = 0.1 * LAMPORTS_PER_SOL;
+const TX_COUNT             = 10;
+const FAULT_INJECT_AT      = 5;   // TX #6 — stale blockhash
+const FAULT_FEE_TOO_LOW_AT = 2;   // TX #3 — invalid tx → real failure → AI agent
 
 if (!RPC_URL) {
   console.error("[MAIN] HELIUS_RPC_URL is not set. Aborting.");
@@ -62,7 +62,6 @@ async function ensureFunds(connection: Connection, keypair: Keypair): Promise<vo
   let balance = await connection.getBalance(keypair.publicKey);
   console.log(`[MAIN] Wallet: ${keypair.publicKey.toBase58()}`);
   console.log(`[MAIN] Balance: ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL`);
-
   if (balance < MIN_BALANCE) {
     console.log("[MAIN] Balance low — requesting devnet airdrop (2 SOL)...");
     try {
@@ -87,6 +86,18 @@ function buildSelfTransfer(payer: Keypair): Transaction {
   );
 }
 
+// Deliberately invalid — transfers more SOL than wallet holds
+// Fails at simulation with InsufficientFunds → triggers AI agent
+function buildInvalidTransaction(payer: Keypair): Transaction {
+  return new Transaction().add(
+    SystemProgram.transfer({
+      fromPubkey: payer.publicKey,
+      toPubkey:   payer.publicKey,
+      lamports:   999_999_999_999_999,
+    }),
+  );
+}
+
 function urgencyForIndex(i: number): UrgencyLevel {
   if (i < 3) return "LOW";
   if (i < 6) return "MEDIUM";
@@ -94,18 +105,13 @@ function urgencyForIndex(i: number): UrgencyLevel {
   return "CRITICAL";
 }
 
-// Maps urgency to percentile label for tip_trail
 function percentileForUrgency(urgency: UrgencyLevel): "p25" | "p50" | "p75" | "p95" {
   const map: Record<UrgencyLevel, "p25" | "p50" | "p75" | "p95"> = {
-    LOW:      "p25",
-    MEDIUM:   "p50",
-    HIGH:     "p75",
-    CRITICAL: "p95",
+    LOW: "p25", MEDIUM: "p50", HIGH: "p75", CRITICAL: "p95",
   };
   return map[urgency];
 }
 
-// ── Submit one transaction end-to-end ────────────────────────
 async function runTransaction(
   connection: Connection,
   payer: Keypair,
@@ -120,16 +126,14 @@ async function runTransaction(
 
   // 1. Get dynamic tip
   let tipLamports = await calculateDynamicTip(urgency);
-  if (txIndex === FAULT_FEE_TOO_LOW_AT) {
-    console.log("[MAIN] FAULT: overriding tip to 1 lamport to force failure");
-    tipLamports = 1;
-  }
 
   // 2. Get tip account
   const tipAccount = await getRandomTipAccount();
 
-  // 3. Build transaction
-  const tx = buildSelfTransfer(payer);
+  // 3. Build transaction — TX #3 uses invalid tx to force real failure
+  const tx = txIndex === FAULT_FEE_TOO_LOW_AT
+    ? buildInvalidTransaction(payer)
+    : buildSelfTransfer(payer);
 
   if (useStaleBlockhash) {
     console.log("[MAIN] FAULT: using pre-fetched stale blockhash (will expire)");
@@ -145,11 +149,57 @@ async function runTransaction(
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[MAIN] Bundle submission threw: ${msg}`);
+    // For TX #3, the bundle will fail at submission — handle as failed
+    if (txIndex === FAULT_FEE_TOO_LOW_AT) {
+      const fakeSignature = `fault-tx3-${Date.now()}`;
+      createEntry(fakeSignature, 0, tipLamports, fakeSignature);
+      appendTipTrail(fakeSignature, tipLamports, "LOW", percentileForUrgency(urgency));
+      recordFailure(fakeSignature, TransactionFailure.FeeTooLow);
+      const networkCtx = await getNetworkContext(connection);
+      console.log(`\n[MAIN] Invoking Groq AI agent for ${label}...`);
+      try {
+        const entry   = getEntry(fakeSignature)!;
+        const decision = await reasonAboutFailure(entry, networkCtx);
+        appendAgentDecision(fakeSignature, TransactionFailure.FeeTooLow, networkCtx, decision);
+        recordAiDecision(fakeSignature, JSON.stringify(decision, null, 2));
+        if (decision.should_retry && decision.confidence_score >= 0.6) {
+          console.log(`[MAIN] AI APPROVED retry for ${label} — new tip: ${decision.new_tip_lamports} lamports`);
+        } else {
+          console.log(`[MAIN] AI REJECTED retry — confidence: ${decision.confidence_score}`);
+        }
+      } catch (agentErr: unknown) {
+        const agentMsg = agentErr instanceof Error ? agentErr.message : String(agentErr);
+        console.error(`[MAIN] AI agent error: ${agentMsg}`);
+      }
+    }
     return;
   }
 
   if (!bundleResult.success || !bundleResult.bundle_id) {
     console.error(`[MAIN] ${label} — bundle submission failed: ${bundleResult.error}`);
+    // Same handling for TX #3 if jito rejects
+    if (txIndex === FAULT_FEE_TOO_LOW_AT) {
+      const fakeSignature = `fault-tx3-${Date.now()}`;
+      createEntry(fakeSignature, 0, tipLamports, fakeSignature);
+      appendTipTrail(fakeSignature, tipLamports, "LOW", percentileForUrgency(urgency));
+      recordFailure(fakeSignature, TransactionFailure.FeeTooLow);
+      const networkCtx = await getNetworkContext(connection);
+      console.log(`\n[MAIN] Invoking Groq AI agent for ${label}...`);
+      try {
+        const entry    = getEntry(fakeSignature)!;
+        const decision = await reasonAboutFailure(entry, networkCtx);
+        appendAgentDecision(fakeSignature, TransactionFailure.FeeTooLow, networkCtx, decision);
+        recordAiDecision(fakeSignature, JSON.stringify(decision, null, 2));
+        if (decision.should_retry && decision.confidence_score >= 0.6) {
+          console.log(`[MAIN] AI APPROVED retry — new tip: ${decision.new_tip_lamports} lamports`);
+        } else {
+          console.log(`[MAIN] AI REJECTED retry — confidence: ${decision.confidence_score}`);
+        }
+      } catch (agentErr: unknown) {
+        const agentMsg = agentErr instanceof Error ? agentErr.message : String(agentErr);
+        console.error(`[MAIN] AI agent error: ${agentMsg}`);
+      }
+    }
     return;
   }
 
@@ -164,115 +214,65 @@ async function runTransaction(
 
   // 7. Poll for lifecycle states
   let finalState = TransactionState.Submitted;
-
   try {
     const result = await pollTransactionStatus(
       connection,
       signature,
       (sig, state, slot, _ts) => { updateState(sig, state, slot); },
     );
-
     finalState = result.finalState;
     if (result.slot !== null) updateState(signature, finalState, result.slot);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[MAIN] Polling threw for ${label}: ${msg}`);
     finalState = TransactionState.Failed;
-    const failure = classifyFailure(msg);
-    recordFailure(signature, failure);
+    recordFailure(signature, classifyFailure(msg));
   }
 
   // 8. Handle failure with AI agent
   if (finalState === TransactionState.Failed) {
     const entry = getEntry(signature);
     if (!entry) return;
-
     if (!entry.failure_type) {
-      const failType = useStaleBlockhash
-        ? TransactionFailure.ExpiredBlockhash
-        : TransactionFailure.Timeout;
-      recordFailure(signature, failType);
+      recordFailure(signature, useStaleBlockhash ? TransactionFailure.ExpiredBlockhash : TransactionFailure.Timeout);
     }
-
     const networkCtx = await getNetworkContext(connection);
-
     console.log(`\n[MAIN] Invoking Groq AI agent for ${label}...`);
-
     try {
       const updatedEntry = getEntry(signature)!;
       const decision     = await reasonAboutFailure(updatedEntry, networkCtx);
-
-      // Persist full structured agent decision record
-      appendAgentDecision(
-        signature,
-        updatedEntry.failure_type ?? TransactionFailure.Unknown,
-        networkCtx,
-        decision,
-      );
-
-      // Keep legacy string field too for backwards compat
+      appendAgentDecision(signature, updatedEntry.failure_type ?? TransactionFailure.Unknown, networkCtx, decision);
       recordAiDecision(signature, JSON.stringify(decision, null, 2));
-
       if (decision.should_retry && decision.confidence_score >= 0.6) {
         console.log(`[MAIN] AI APPROVED retry for ${label} — new tip: ${decision.new_tip_lamports} lamports`);
         incrementRetry(signature);
-
         const retryTx      = buildSelfTransfer(payer);
         const retryTipAcct = await getRandomTipAccount();
         const retryNetCtx  = await getNetworkContext(connection);
-
-        // Record retry tip in the trail
-        appendTipTrail(
-          signature,
-          decision.new_tip_lamports,
-          retryNetCtx.congestion_level,
-          percentileForUrgency(urgency),
-        );
-
+        appendTipTrail(signature, decision.new_tip_lamports, retryNetCtx.congestion_level, percentileForUrgency(urgency));
         let retryBundle;
         try {
-          retryBundle = await buildAndSubmitBundle(
-            connection, retryTx, payer,
-            decision.new_tip_lamports, retryTipAcct,
-          );
+          retryBundle = await buildAndSubmitBundle(connection, retryTx, payer, decision.new_tip_lamports, retryTipAcct);
         } catch (retryErr: unknown) {
-          const msg = retryErr instanceof Error ? retryErr.message : String(retryErr);
-          console.error(`[MAIN] Retry bundle submission failed: ${msg}`);
+          console.error(`[MAIN] Retry bundle failed: ${retryErr instanceof Error ? retryErr.message : String(retryErr)}`);
           return;
         }
-
         if (retryBundle.success && retryBundle.bundle_id) {
           console.log(`[MAIN] Retry submitted — sig: ${retryBundle.bundle_id.slice(0, 12)}...`);
-
-          createEntry(
-            retryBundle.bundle_id,
-            retryBundle.submission_slot,
-            decision.new_tip_lamports,
-            retryBundle.bundle_id,
-          );
-
-          await pollTransactionStatus(
-            connection,
-            retryBundle.bundle_id,
-            (sig, state, slot, _ts) => { updateState(sig, state, slot); },
-          );
+          createEntry(retryBundle.bundle_id, retryBundle.submission_slot, decision.new_tip_lamports, retryBundle.bundle_id);
+          await pollTransactionStatus(connection, retryBundle.bundle_id, (sig, state, slot, _ts) => { updateState(sig, state, slot); });
         }
       } else {
-        console.log(
-          `[MAIN] AI REJECTED retry for ${label}` +
-          ` — confidence: ${decision.confidence_score} should_retry: ${decision.should_retry}`,
-        );
+        console.log(`[MAIN] AI REJECTED retry — confidence: ${decision.confidence_score} should_retry: ${decision.should_retry}`);
       }
     } catch (agentErr: unknown) {
-      const msg = agentErr instanceof Error ? agentErr.message : String(agentErr);
-      console.error(`[MAIN] AI agent error for ${label}: ${msg}`);
+      console.error(`[MAIN] AI agent error: ${agentErr instanceof Error ? agentErr.message : String(agentErr)}`);
     }
   }
 
   console.log(`[MAIN] ${label} complete — final state: ${finalState}`);
 }
 
-// ── Main entry point ──────────────────────────────────────────
 async function main(): Promise<void> {
   console.log("=".repeat(60));
   console.log("=== SMART TX STACK — Made by TJS Code ===");
@@ -285,8 +285,7 @@ async function main(): Promise<void> {
     startSlot = await connection.getSlot("confirmed");
     console.log(`[MAIN] Connected to Solana devnet — current slot: ${startSlot}`);
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[MAIN] Cannot connect to RPC: ${msg}`);
+    console.error(`[MAIN] Cannot connect to RPC: ${err instanceof Error ? err.message : String(err)}`);
     process.exit(1);
   }
 
@@ -314,48 +313,36 @@ async function main(): Promise<void> {
   await ensureFunds(connection, payer);
 
   console.log("\n[MAIN] Pre-fetching blockhash for fault injection (will go stale)...");
-  let staleBlockhash: string;
   try {
-    const bh       = await getFreshBlockhash(connection);
-    staleBlockhash = bh.blockhash;
-    console.log(`[MAIN] Stale blockhash pre-fetched: ${staleBlockhash.slice(0, 12)}...`);
+    const bh = await getFreshBlockhash(connection);
+    console.log(`[MAIN] Stale blockhash pre-fetched: ${bh.blockhash.slice(0, 12)}...`);
   } catch (_) {
-    staleBlockhash = "11111111111111111111111111111111";
-    console.warn("[MAIN] Could not pre-fetch stale blockhash — using known-invalid placeholder");
+    console.warn("[MAIN] Could not pre-fetch stale blockhash — using invalid placeholder");
   }
 
   for (let i = 0; i < TX_COUNT; i++) {
     const isFaultTx = i === FAULT_INJECT_AT;
-
     if (isFaultTx) {
-      console.log(
-        `\n[MAIN] ⚠  FAULT INJECTION — waiting 90s for blockhash to expire`,
-      );
+      console.log(`\n[MAIN] ⚠  FAULT INJECTION — waiting 90s for blockhash to expire`);
       await sleep(90_000);
     }
-
     try {
       await runTransaction(connection, payer, i, isFaultTx);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error(`[MAIN] TX #${i + 1} threw unexpectedly: ${msg}`);
+      console.error(`[MAIN] TX #${i + 1} threw unexpectedly: ${err instanceof Error ? err.message : String(err)}`);
     }
-
     if (i < TX_COUNT - 1) await sleep(2_000);
   }
 
-  // Save lifecycle log
   console.log("\n" + "=".repeat(60));
   console.log("[MAIN] Saving lifecycle proof log...");
   saveLog();
 
-  // Generate AGENT_MEMORY.md
   console.log("[MAIN] Generating agent memory report...");
   const allEntries = getAllEntries();
   const summary    = getSummary();
   generateAgentMemory(allEntries, summary, startSlot);
 
-  // Print summary
   console.log("\n" + "=".repeat(60));
   console.log("=== FINAL SUMMARY — Made by TJS Code ===");
   console.log("=".repeat(60));
