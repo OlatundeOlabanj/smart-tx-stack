@@ -4,7 +4,7 @@
 
 ---
 
-## Run Summary — 2026-06-19T12:22:39.959Z
+## Run Summary — 2026-06-21T16:41:33.275Z
 
 | Metric | Value |
 |--------|-------|
@@ -12,9 +12,9 @@
 | Finalized | 9 |
 | Failed | 1 |
 | Success Rate | 90.0% |
-| Avg Confirmation | 1844ms |
-| Total Tips Paid | 221,657 lamports |
-| Slot Range | 470516247 – 470516952 (705 slots) |
+| Avg Confirmation | 1838ms |
+| Total Tips Paid | 7,066,212 lamports |
+| Slot Range | 470994546 – 470995277 (731 slots) |
 | AI Interventions | 1 |
 | AI Approved Retries | 1 |
 | AI Rejected Retries | 0 |
@@ -24,23 +24,23 @@
 ## Agent Observations
 
 ### Tip Behaviour
-- Tip range this run: **1,000 – 100,000 lamports** (avg: 22,166)
+- Tip range this run: **1,000 – 5,224,114 lamports** (avg: 706,621)
 - Transactions that required tip escalation: **0** of 10
-- Avg agent confidence score: **0.90** — high certainty across all decisions
+- Avg agent confidence score: **0.80** — high certainty across all decisions
 - Confidence gate did not block any retries this run
 
 ### Network Patterns Detected
 - Dominant congestion level: **LOW**
 - Congestion distribution: LOW: 1×
-- Avg processed→confirmed delta: **1844ms** (moderate)
+- Avg processed→confirmed delta: **1838ms** (moderate)
 
 ### Failure Events
-- TX sig `fault-tx3-178187...` — FeeTooLow
+- TX sig `fault-tx3-178205...` — FeeTooLow
 
 ### Sample Agent Reasoning
 
-**Decision 1** (FeeTooLow, confidence: 0.9)
-> "The failure type 'FeeTooLow' is retryable, and the current network congestion level is LOW, making it a good time to retry. Given the recent average confirmation time of 0ms and a failure rate of 0.0%, a higher tip of 2000 lamports is likely to succeed. The cost of retrying is low compared to the potential benefit of a successful transaction."
+**Decision 1** (FeeTooLow, confidence: 0.8)
+> "The failure type 'FeeTooLow' is retryable, and the current network congestion level is LOW, making it a good time to retry. Given the recent average confirmation time and failure rate, increasing the tip to 2000 lamports should be sufficient to succeed. The cost of retrying is outweighed by the potential benefit of a successful transaction."
 
 ---
 
