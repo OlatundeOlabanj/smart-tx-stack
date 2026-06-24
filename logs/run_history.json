@@ -1,0 +1,35 @@
+{
+  "total_runs": 2,
+  "runs": [
+    {
+      "run_id": "run_2026-06-24T13-14-51-949Z",
+      "run_at": "2026-06-24T13:14:51.949Z",
+      "total_txns": 11,
+      "successful": 9,
+      "failed": 2,
+      "success_rate_pct": 81.8,
+      "avg_confirmation_ms": 1750,
+      "total_tips_lamports": 329005,
+      "ai_interventions": 2,
+      "ai_approved_retries": 2,
+      "geyser_confirmed_txns": 0,
+      "slot_range": "471646922–471647608",
+      "archive_file": "history/run_2026-06-24T13-14-51-949Z.json"
+    },
+    {
+      "run_id": "run_2026-06-24T20-00-11-389Z",
+      "run_at": "2026-06-24T20:00:11.389Z",
+      "total_txns": 6,
+      "successful": 4,
+      "failed": 2,
+      "success_rate_pct": 66.7,
+      "avg_confirmation_ms": 1183,
+      "total_tips_lamports": 331500,
+      "ai_interventions": 0,
+      "ai_approved_retries": 0,
+      "geyser_confirmed_txns": 0,
+      "slot_range": "471711063–471712038",
+      "archive_file": "history/run_2026-06-24T20-00-11-389Z.json"
+    }
+  ]
+}

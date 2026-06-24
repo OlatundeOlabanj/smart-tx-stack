@@ -2,6 +2,8 @@
 // smart-tx-stack — src/lifecycle/tracker.ts
 // Real lifecycle tracker — records state transitions + writes
 // verifiable proof logs to logs/lifecycle.json
+// NEW: confirmed_via field ("geyser" | "rpc_polling")
+// NEW: saveRunToHistory() archives each run
 // Made by TJS Code
 // ============================================================
 
@@ -19,13 +21,19 @@ import {
   CongestionLevel,
 } from "../types";
 
-const LOG_PATH = path.resolve(process.cwd(), "logs", "lifecycle.json");
+const LOG_PATH     = path.resolve(process.cwd(), "logs", "lifecycle.json");
+const HISTORY_DIR  = path.resolve(process.cwd(), "logs", "history");
+const RUN_INDEX    = path.resolve(process.cwd(), "logs", "run_history.json");
 
 const entries = new Map<string, LifecycleEntry>();
 
 function ensureLogDir(): void {
   const dir = path.dirname(LOG_PATH);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
+
+function ensureHistoryDir(): void {
+  if (!fs.existsSync(HISTORY_DIR)) fs.mkdirSync(HISTORY_DIR, { recursive: true });
 }
 
 export function createEntry(
@@ -39,7 +47,7 @@ export function createEntry(
     return;
   }
 
-  const entry: LifecycleEntry = {
+  const entry: LifecycleEntry & { confirmed_via?: string } = {
     signature,
     submitted_at:      new Date().toISOString(),
     processed_at:      null,
@@ -53,10 +61,25 @@ export function createEntry(
     bundle_id:         bundleId,
     tip_trail:         [],
     agent_decisions:   [],
+    confirmed_via:     "rpc_polling",   // default; updated if gRPC confirms first
   };
 
   entries.set(signature, entry);
   console.log(`[TRACKER] Created entry for ${signature.slice(0, 12)}... slot: ${slotSubmitted}`);
+}
+
+// ── Mark a specific signature as gRPC-confirmed ───────────────
+export function setConfirmedVia(
+  signature: string,
+  via: "geyser" | "rpc_polling",
+): void {
+  const entry = entries.get(signature) as any;
+  if (!entry) return;
+  entry.confirmed_via = via;
+  entries.set(signature, entry);
+  if (via === "geyser") {
+    console.log(`[TRACKER] ${signature.slice(0, 12)}... confirmed via Yellowstone gRPC stream`);
+  }
 }
 
 export function updateState(
@@ -94,7 +117,6 @@ export function updateState(
   console.log(`[TRACKER] ${signature.slice(0, 12)}... → ${state} at ${now}`);
 }
 
-// ── NEW: append one step to the tip trail ────────────────────
 export function appendTipTrail(
   signature: string,
   tipLamports: number,
@@ -121,7 +143,6 @@ export function appendTipTrail(
   );
 }
 
-// ── NEW: append a full structured agent decision record ───────
 export function appendAgentDecision(
   signature: string,
   failureType: string,
@@ -163,7 +184,7 @@ export function appendAgentDecision(
 
 export function classifyFailure(errorMessage: string): TransactionFailure {
   const msg = errorMessage.toLowerCase();
-  if (msg.includes("blockhash not found") || msg.includes("expired")) return TransactionFailure.ExpiredBlockhash;
+  if (msg.includes("blockhash not found") || msg.includes("expired") || msg.includes("block hash")) return TransactionFailure.ExpiredBlockhash;
   if (msg.includes("insufficient funds") || msg.includes("fee too low")) return TransactionFailure.FeeTooLow;
   if (msg.includes("compute budget") || msg.includes("exceeded compute") || msg.includes("computebudget")) return TransactionFailure.ComputeBudgetExceeded;
   if (msg.includes("bundle") && msg.includes("fail")) return TransactionFailure.BundleExecutionFailure;
@@ -208,6 +229,7 @@ export function getAllEntries(): LifecycleEntry[] {
   return Array.from(entries.values());
 }
 
+// ── Save current run log (overwrites lifecycle.json) ─────────
 export function saveLog(): void {
   ensureLogDir();
   const allEntries = Array.from(entries.values());
@@ -225,6 +247,72 @@ export function saveLog(): void {
   console.log(`[TRACKER] Log saved → ${LOG_PATH} (${allEntries.length} entries)`);
 }
 
+// ── NEW: Archive this run to logs/history/ ────────────────────
+// Also updates logs/run_history.json index
+export function saveRunToHistory(summary: SystemSummary, startSlot: number): void {
+  ensureHistoryDir();
+
+  const allEntries = Array.from(entries.values());
+  allEntries.sort(
+    (a, b) => new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime(),
+  );
+
+  const runAt = allEntries[0]?.submitted_at ?? new Date().toISOString();
+  const runId = "run_" + runAt.replace(/[:.]/g, "-").replace("T", "T").slice(0, 23) + "Z";
+
+  // ── Save full lifecycle to history folder ─────────────────
+  const archivePath = path.join(HISTORY_DIR, `${runId}.json`);
+  const archivePayload = {
+    run_id:        runId,
+    run_at:        runAt,
+    generated_at:  new Date().toISOString(),
+    total_entries: allEntries.length,
+    summary,
+    entries:       allEntries,
+  };
+  fs.writeFileSync(archivePath, JSON.stringify(archivePayload, null, 2), "utf-8");
+  console.log(`[TRACKER] Run archived → ${archivePath}`);
+
+  // ── Count gRPC-confirmed transactions ─────────────────────
+  const geyserConfirmed = allEntries.filter(
+    (e: any) => e.confirmed_via === "geyser",
+  ).length;
+
+  // ── Update run_history.json index ─────────────────────────
+  let historyIndex: { total_runs: number; runs: any[] } = { total_runs: 0, runs: [] };
+
+  if (fs.existsSync(RUN_INDEX)) {
+    try {
+      historyIndex = JSON.parse(fs.readFileSync(RUN_INDEX, "utf-8"));
+    } catch {
+      historyIndex = { total_runs: 0, runs: [] };
+    }
+  }
+
+  const endSlot = Math.max(...allEntries.map((e) => e.slot_landed ?? e.slot_submitted).filter((s) => s > 0));
+  const runSummaryEntry = {
+    run_id:                  runId,
+    run_at:                  runAt,
+    total_txns:              summary.total_transactions,
+    successful:              summary.successful,
+    failed:                  summary.failed,
+    success_rate_pct:        parseFloat(summary.success_rate_pct.toFixed(1)),
+    avg_confirmation_ms:     summary.avg_confirmation_ms,
+    total_tips_lamports:     summary.total_tips_paid_lamports,
+    ai_interventions:        summary.ai_interventions,
+    ai_approved_retries:     summary.ai_approved_retries,
+    geyser_confirmed_txns:   geyserConfirmed,
+    slot_range:              `${startSlot}–${endSlot}`,
+    archive_file:            `history/${runId}.json`,
+  };
+
+  historyIndex.runs.push(runSummaryEntry);
+  historyIndex.total_runs = historyIndex.runs.length;
+
+  fs.writeFileSync(RUN_INDEX, JSON.stringify(historyIndex, null, 2), "utf-8");
+  console.log(`[TRACKER] run_history.json updated — total runs: ${historyIndex.total_runs}`);
+}
+
 export function getSummary(): SystemSummary {
   const all = Array.from(entries.values());
 
@@ -233,8 +321,8 @@ export function getSummary(): SystemSummary {
 
   const deltas: number[] = [];
   for (const e of all) {
-    if (e.processed_at && e.confirmed_at) {
-      const delta = new Date(e.confirmed_at).getTime() - new Date(e.processed_at).getTime();
+    if (e.submitted_at && e.confirmed_at) {
+      const delta = new Date(e.confirmed_at).getTime() - new Date(e.submitted_at).getTime();
       if (delta >= 0) deltas.push(delta);
     }
   }
