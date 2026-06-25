@@ -4,73 +4,82 @@
 
 ---
 
-## Run Summary — 2026-06-24T20:08:52.099Z
+## Run Summary — 2026-06-25T12:20:24.829Z
 
 | Metric | Value |
 |--------|-------|
-| Total Transactions | 6 |
-| Finalized | 4 |
+| Total Transactions | 11 |
+| Finalized | 9 |
 | Failed | 2 |
-| Success Rate | 66.7% |
-| Avg Confirmation | 1183ms |
-| Total Tips Paid | 331,500 lamports |
-| Slot Range | 471711063 – 471712038 (975 slots) |
-| AI Interventions | 0 |
-| AI Approved Retries | 0 |
+| Success Rate | 81.8% |
+| Avg Confirmation | 1452ms |
+| Total Tips Paid | 56,404 lamports |
+| Slot Range | 471865694 – 471866449 (755 slots) |
+| AI Interventions | 2 |
+| AI Approved Retries | 2 |
 | AI Rejected Retries | 0 |
 | Confirmed via gRPC | 0 txns (0%) |
-| Confirmed via RPC poll | 6 txns |
+| Confirmed via RPC poll | 11 txns |
 
 ---
 
 ## Agent Observations
 
 ### Tip Behaviour
-- Tip range this run: **1,000 – 303,567 lamports** (avg: 55,250)
-- Transactions that required tip escalation: **0** of 6
-- Avg agent confidence score: **N/A** — moderate certainty, monitor closely
+- Tip range this run: **1,001 – 25,047 lamports** (avg: 5,128)
+- Transactions that required tip escalation: **0** of 11
+- Avg agent confidence score: **0.90** — high certainty across all decisions
 - Confidence gate did not block any retries this run
 
 ### Network Patterns Detected
-- Dominant congestion level: **UNKNOWN**
-- Congestion distribution: no AI-triggered network reads
-- Avg processed→confirmed delta: **1183ms** (moderate)
+- Dominant congestion level: **LOW**
+- Congestion distribution: LOW: 2×
+- Avg processed→confirmed delta: **1452ms** (moderate)
 
 ### Confirmation Method Breakdown
 - **0 txns** confirmed via Yellowstone gRPC stream (0%)
-- **6 txns** confirmed via Helius RPC polling
+- **11 txns** confirmed via Helius RPC polling
 - Note: gRPC confirmation requires active SOLINFRA_GRPC_KEY and wallet subscription
 
 ### Failure Events
-- TX sig `fault-tx3-178233...` — FeeTooLow
+- TX sig `fault-tx3-178238...` — FeeTooLow
 - TX sig `fault-tx6-stale-...` — ExpiredBlockhash
 
+### Sample Agent Reasoning
 
+**Decision 1** (FeeTooLow, confidence: 0.9)
+> "The failure type 'FeeTooLow' is retryable, and the current network congestion level is LOW, making it a good time to retry. Given the recent average confirmation time of 0ms and a failure rate of 0.0%, the cost of retrying is low. A higher tip of 2000 lamports is likely to succeed."
+
+**Decision 2** (ExpiredBlockhash, confidence: 0.9)
+> "The failure type 'ExpiredBlockhash' is typically safe to retry with a fresh blockhash, and the current network congestion level is LOW, indicating a good time to retry. The recent average confirmation time is relatively fast at 1766ms, and the recent failure rate is 0.0%, suggesting a low risk of further failures. Given these conditions, retrying with the same tip of 1664 lamports is reasonable."
 
 ---
 
 ## Agent Recommendation for Next Run
 
-> "Elevated failure rate detected (66.7%). Recommend increasing base tip to p50 and enabling automatic tip escalation on first retry. Consider reducing TX_COUNT during high congestion windows."
+> "Network conditions were moderate. Current tip strategy is adequate. Monitor tip_trail escalations — if > 30% of transactions escalate, bump base urgency up one tier."
 
 ---
 
 ## Cross-Run Tip Intelligence
 
-> Analysed across **2** run(s). Trend: **↓ Degrading** | Avg success: **74.3%**
+> Analysed across **5** run(s). Trend: **→ Stable** | Avg success: **62.4%**
 
 | Date | TXns | Success | Avg Confirm | Avg Tip | gRPC Confirm |
 |------|------|---------|-------------|---------|--------------|
 | 2026-06-24 | 11 | 82% | 1750ms | 29,910 lam | 0% gRPC |
 | 2026-06-24 | 6 | 67% | 1183ms | 55,250 lam | 0% gRPC |
+| 2026-06-25 | 11 | 82% | 1253ms | 3,644 lam | 0% gRPC |
+| 2026-06-25 | 2 | 0% | 0ms | 1,422 lam | 0% gRPC |
+| 2026-06-25 | 11 | 82% | 1452ms | 5,128 lam | 0% gRPC |
 
 ### Tip Recommendation for Next Run
 
-> Success rate below 80% — consider bumping base tip percentile from p25 to p50. Average tip per transaction: 42,580 lamports may be insufficient.
+> Success rate below 80% — consider bumping base tip percentile from p25 to p50. Average tip per transaction: 19,071 lamports may be insufficient.
 
 ### gRPC Stream Coverage
 
-Average **0%** of transactions confirmed via Yellowstone gRPC stream across last 2 run(s). gRPC stream confirmation not yet recorded — check SOLINFRA_GRPC_KEY in .env.
+Average **0%** of transactions confirmed via Yellowstone gRPC stream across last 5 run(s). gRPC stream confirmation not yet recorded — check SOLINFRA_GRPC_KEY in .env.
 
 ---
 

@@ -1,0 +1,69 @@
+{
+  "run_id": "run_2026-06-25T11-55-16-969Z",
+  "run_at": "2026-06-25T11:55:16.969Z",
+  "generated_at": "2026-06-25T12:02:36.417Z",
+  "total_entries": 2,
+  "summary": {
+    "total_transactions": 2,
+    "successful": 0,
+    "failed": 2,
+    "success_rate_pct": 0,
+    "avg_confirmation_ms": 0,
+    "total_tips_paid_lamports": 2844,
+    "ai_interventions": 0,
+    "ai_approved_retries": 0,
+    "ai_rejected_retries": 0
+  },
+  "entries": [
+    {
+      "signature": "fault-tx3-1782388516968",
+      "submitted_at": "2026-06-25T11:55:16.969Z",
+      "processed_at": null,
+      "confirmed_at": null,
+      "finalized_at": null,
+      "slot_submitted": 0,
+      "slot_landed": null,
+      "tip_paid_lamports": 1000,
+      "retry_count": 0,
+      "final_state": "Failed",
+      "bundle_id": "fault-tx3-1782388516968",
+      "tip_trail": [
+        {
+          "attempt": 1,
+          "tip_lamports": 1000,
+          "congestion_level": "LOW",
+          "percentile": "p25",
+          "submitted_at": "2026-06-25T11:55:16.971Z"
+        }
+      ],
+      "agent_decisions": [],
+      "confirmed_via": "rpc_polling",
+      "failure_type": "FeeTooLow"
+    },
+    {
+      "signature": "fault-tx6-stale-1782388767921",
+      "submitted_at": "2026-06-25T11:59:27.922Z",
+      "processed_at": null,
+      "confirmed_at": null,
+      "finalized_at": null,
+      "slot_submitted": 471863162,
+      "slot_landed": null,
+      "tip_paid_lamports": 1844,
+      "retry_count": 0,
+      "final_state": "Failed",
+      "bundle_id": "fault-tx6-stale-1782388767921",
+      "tip_trail": [
+        {
+          "attempt": 1,
+          "tip_lamports": 1844,
+          "congestion_level": "MEDIUM",
+          "percentile": "p50",
+          "submitted_at": "2026-06-25T11:59:27.922Z"
+        }
+      ],
+      "agent_decisions": [],
+      "confirmed_via": "rpc_polling",
+      "failure_type": "ExpiredBlockhash"
+    }
+  ]
+}

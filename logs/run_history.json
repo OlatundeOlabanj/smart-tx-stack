@@ -1,5 +1,5 @@
 {
-  "total_runs": 2,
+  "total_runs": 5,
   "runs": [
     {
       "run_id": "run_2026-06-24T13-14-51-949Z",
@@ -30,6 +30,51 @@
       "geyser_confirmed_txns": 0,
       "slot_range": "471711063–471712038",
       "archive_file": "history/run_2026-06-24T20-00-11-389Z.json"
+    },
+    {
+      "run_id": "run_2026-06-25T11-26-30-970Z",
+      "run_at": "2026-06-25T11:26:30.970Z",
+      "total_txns": 11,
+      "successful": 9,
+      "failed": 2,
+      "success_rate_pct": 81.8,
+      "avg_confirmation_ms": 1253,
+      "total_tips_lamports": 40080,
+      "ai_interventions": 2,
+      "ai_approved_retries": 2,
+      "geyser_confirmed_txns": 0,
+      "slot_range": "471857839–471858726",
+      "archive_file": "history/run_2026-06-25T11-26-30-970Z.json"
+    },
+    {
+      "run_id": "run_2026-06-25T11-55-16-969Z",
+      "run_at": "2026-06-25T11:55:16.969Z",
+      "total_txns": 2,
+      "successful": 0,
+      "failed": 2,
+      "success_rate_pct": 0,
+      "avg_confirmation_ms": 0,
+      "total_tips_lamports": 2844,
+      "ai_interventions": 0,
+      "ai_approved_retries": 0,
+      "geyser_confirmed_txns": 0,
+      "slot_range": "471862119–471863162",
+      "archive_file": "history/run_2026-06-25T11-55-16-969Z.json"
+    },
+    {
+      "run_id": "run_2026-06-25T12-15-40-888Z",
+      "run_at": "2026-06-25T12:15:40.888Z",
+      "total_txns": 11,
+      "successful": 9,
+      "failed": 2,
+      "success_rate_pct": 81.8,
+      "avg_confirmation_ms": 1452,
+      "total_tips_lamports": 56404,
+      "ai_interventions": 2,
+      "ai_approved_retries": 2,
+      "geyser_confirmed_txns": 0,
+      "slot_range": "471865694–471866449",
+      "archive_file": "history/run_2026-06-25T12-15-40-888Z.json"
     }
   ]
 }
