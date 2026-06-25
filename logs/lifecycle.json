@@ -1,148 +1,311 @@
 {
-  "generated_at": "2026-06-24T20:08:51.983Z",
-  "total_entries": 6,
+  "run_id": "run_2026-06-24T13-14-51-949Z",
+  "run_at": "2026-06-24T13:14:51.949Z",
+  "generated_at": "2026-06-24T13:19:13.253Z",
+  "total_entries": 11,
+  "summary": {
+    "total_transactions": 11,
+    "successful": 9,
+    "failed": 2,
+    "success_rate_pct": 81.81818181818183,
+    "avg_confirmation_ms": 1750,
+    "total_tips_paid_lamports": 329005,
+    "ai_interventions": 2,
+    "ai_approved_retries": 2,
+    "ai_rejected_retries": 0
+  },
   "entries": [
     {
-      "signature": "VebR7hW9ERxeFZVNFLNs3giUi4YfFoVozYfD5CfYymEwC23yxERCxnUA3w8NNHgPaxtdWymJVnrcja9WFiywpDf",
-      "submitted_at": "2026-06-24T20:00:11.389Z",
+      "signature": "51mcioH4Y5boHpYZpdQgd3bvqJUvuR3iGMtT3YTSyy5aNcS1y8ANh8GbsUiZgXxcYMFxejQukA8R6vSEu2GMcNWo",
+      "submitted_at": "2026-06-24T13:14:51.949Z",
       "processed_at": null,
-      "confirmed_at": "2026-06-24T20:00:12.199Z",
-      "finalized_at": "2026-06-24T20:00:24.899Z",
-      "slot_submitted": 471711125,
-      "slot_landed": 471711132,
-      "tip_paid_lamports": 1574,
-      "retry_count": 0,
-      "final_state": "Finalized",
-      "bundle_id": "VebR7hW9ERxeFZVNFLNs3giUi4YfFoVozYfD5CfYymEwC23yxERCxnUA3w8NNHgPaxtdWymJVnrcja9WFiywpDf",
-      "tip_trail": [
-        {
-          "attempt": 1,
-          "tip_lamports": 1574,
-          "congestion_level": "LOW",
-          "percentile": "p25",
-          "submitted_at": "2026-06-24T20:00:11.800Z"
-        }
-      ],
-      "agent_decisions": [],
-      "confirmed_via": "rpc_polling"
-    },
-    {
-      "signature": "4pE6ETSHwEvGSGmk4VGZ9966xWCoMtVYZBWau7HLpKq8wxF6JSWQznNsgNd4mwaC3VWrmjn2fYHiEBkCbqLPbAAd",
-      "submitted_at": "2026-06-24T20:00:45.027Z",
-      "processed_at": null,
-      "confirmed_at": "2026-06-24T20:00:45.872Z",
-      "finalized_at": "2026-06-24T20:00:57.750Z",
-      "slot_submitted": 0,
-      "slot_landed": 471711221,
+      "confirmed_at": "2026-06-24T13:14:52.667Z",
+      "finalized_at": "2026-06-24T13:15:05.226Z",
+      "slot_submitted": 471646947,
+      "slot_landed": 471646952,
       "tip_paid_lamports": 1000,
       "retry_count": 0,
       "final_state": "Finalized",
-      "bundle_id": "4pE6ETSHwEvGSGmk4VGZ9966xWCoMtVYZBWau7HLpKq8wxF6JSWQznNsgNd4mwaC3VWrmjn2fYHiEBkCbqLPbAAd",
+      "bundle_id": "51mcioH4Y5boHpYZpdQgd3bvqJUvuR3iGMtT3YTSyy5aNcS1y8ANh8GbsUiZgXxcYMFxejQukA8R6vSEu2GMcNWo",
       "tip_trail": [
         {
           "attempt": 1,
           "tip_lamports": 1000,
           "congestion_level": "LOW",
           "percentile": "p25",
-          "submitted_at": "2026-06-24T20:00:45.455Z"
+          "submitted_at": "2026-06-24T13:14:52.397Z"
         }
       ],
       "agent_decisions": [],
       "confirmed_via": "rpc_polling"
     },
     {
-      "signature": "fault-tx3-1782331277799",
-      "submitted_at": "2026-06-24T20:01:17.799Z",
+      "signature": "5mY2ArxAgEra83b9duHAiiy4ce3Z3K7op7saQAAEGy7sMMLLeeM6wAacTx8S6bFB7ZvsNJwVsBQBzk3pv3zWcwxQ",
+      "submitted_at": "2026-06-24T13:15:09.818Z",
       "processed_at": null,
-      "confirmed_at": null,
-      "finalized_at": null,
-      "slot_submitted": 0,
-      "slot_landed": null,
-      "tip_paid_lamports": 1024,
+      "confirmed_at": "2026-06-24T13:15:10.538Z",
+      "finalized_at": "2026-06-24T13:15:23.544Z",
+      "slot_submitted": 471646995,
+      "slot_landed": 471647000,
+      "tip_paid_lamports": 1000,
       "retry_count": 0,
-      "final_state": "Failed",
-      "bundle_id": "fault-tx3-1782331277799",
+      "final_state": "Finalized",
+      "bundle_id": "5mY2ArxAgEra83b9duHAiiy4ce3Z3K7op7saQAAEGy7sMMLLeeM6wAacTx8S6bFB7ZvsNJwVsBQBzk3pv3zWcwxQ",
       "tip_trail": [
         {
           "attempt": 1,
-          "tip_lamports": 1024,
+          "tip_lamports": 1000,
           "congestion_level": "LOW",
           "percentile": "p25",
-          "submitted_at": "2026-06-24T20:01:17.799Z"
-        }
-      ],
-      "agent_decisions": [],
-      "confirmed_via": "rpc_polling",
-      "failure_type": "FeeTooLow"
-    },
-    {
-      "signature": "2Uxy3QBkT7wmJiHcsi7iQLPDByAe74q6FmqJncZrKp19JhLmuW49LnjGLmn8we3hzvAJddAnqgkNoxdFG4d3vqU7",
-      "submitted_at": "2026-06-24T20:01:54.270Z",
-      "processed_at": null,
-      "confirmed_at": "2026-06-24T20:01:55.239Z",
-      "finalized_at": "2026-06-24T20:02:09.631Z",
-      "slot_submitted": 471711395,
-      "slot_landed": 471711403,
-      "tip_paid_lamports": 4335,
-      "retry_count": 0,
-      "final_state": "Finalized",
-      "bundle_id": "2Uxy3QBkT7wmJiHcsi7iQLPDByAe74q6FmqJncZrKp19JhLmuW49LnjGLmn8we3hzvAJddAnqgkNoxdFG4d3vqU7",
-      "tip_trail": [
-        {
-          "attempt": 1,
-          "tip_lamports": 4335,
-          "congestion_level": "LOW",
-          "percentile": "p50",
-          "submitted_at": "2026-06-24T20:01:54.782Z"
+          "submitted_at": "2026-06-24T13:15:10.228Z"
         }
       ],
       "agent_decisions": [],
       "confirmed_via": "rpc_polling"
     },
     {
-      "signature": "fault-tx6-stale-1782331490321",
-      "submitted_at": "2026-06-24T20:04:50.323Z",
+      "signature": "fault-tx3-1782306929792",
+      "submitted_at": "2026-06-24T13:15:29.792Z",
       "processed_at": null,
       "confirmed_at": null,
       "finalized_at": null,
       "slot_submitted": 0,
       "slot_landed": null,
-      "tip_paid_lamports": 20000,
+      "tip_paid_lamports": 1218,
       "retry_count": 0,
       "final_state": "Failed",
-      "bundle_id": "fault-tx6-stale-1782331490321",
+      "bundle_id": "fault-tx3-1782306929792",
       "tip_trail": [
         {
           "attempt": 1,
-          "tip_lamports": 20000,
-          "congestion_level": "MEDIUM",
+          "tip_lamports": 1218,
+          "congestion_level": "LOW",
+          "percentile": "p25",
+          "submitted_at": "2026-06-24T13:15:29.795Z"
+        }
+      ],
+      "agent_decisions": [
+        {
+          "triggered_at": "2026-06-24T13:15:32.672Z",
+          "failure_type": "FeeTooLow",
+          "network_context": {
+            "current_slot": 471647052,
+            "avg_confirmation_ms": 0,
+            "congestion_level": "LOW",
+            "recent_failure_rate": 0
+          },
+          "groq_response": {
+            "should_retry": true,
+            "new_tip_lamports": 1500,
+            "reason": "The failure type 'FeeTooLow' is retryable, and the current network congestion level is LOW, indicating a good time to retry. Given the recent average confirmation time of 0ms and a failure rate of 0.0%, it's likely that retrying with a higher tip will succeed. The new tip of 1500 lamports is chosen to increase the likelihood of inclusion by validators.",
+            "confidence_score": 0.9
+          },
+          "gate_passed": true
+        }
+      ],
+      "confirmed_via": "rpc_polling",
+      "failure_type": "FeeTooLow",
+      "ai_decision": "{\n  \"should_retry\": true,\n  \"new_tip_lamports\": 1500,\n  \"reason\": \"The failure type 'FeeTooLow' is retryable, and the current network congestion level is LOW, indicating a good time to retry. Given the recent average confirmation time of 0ms and a failure rate of 0.0%, it's likely that retrying with a higher tip will succeed. The new tip of 1500 lamports is chosen to increase the likelihood of inclusion by validators.\",\n  \"confidence_score\": 0.9\n}"
+    },
+    {
+      "signature": "8krSNUieb9U9pD6oUyVfDBhFhAqamBqoeEYXXdDyTG57zpdFvMvcEBE7ow5X1R6wujAeN1JW6KBv3N9YYFkP7gx",
+      "submitted_at": "2026-06-24T13:15:37.679Z",
+      "processed_at": null,
+      "confirmed_at": "2026-06-24T13:15:38.181Z",
+      "finalized_at": "2026-06-24T13:15:50.820Z",
+      "slot_submitted": 471647068,
+      "slot_landed": 471647073,
+      "tip_paid_lamports": 5017,
+      "retry_count": 0,
+      "final_state": "Finalized",
+      "bundle_id": "8krSNUieb9U9pD6oUyVfDBhFhAqamBqoeEYXXdDyTG57zpdFvMvcEBE7ow5X1R6wujAeN1JW6KBv3N9YYFkP7gx",
+      "tip_trail": [
+        {
+          "attempt": 1,
+          "tip_lamports": 5017,
+          "congestion_level": "LOW",
           "percentile": "p50",
-          "submitted_at": "2026-06-24T20:04:50.349Z"
+          "submitted_at": "2026-06-24T13:15:37.926Z"
         }
       ],
       "agent_decisions": [],
-      "confirmed_via": "rpc_polling",
-      "failure_type": "ExpiredBlockhash"
+      "confirmed_via": "rpc_polling"
     },
     {
-      "signature": "4zigCzdFzZPBG65DbocaSXNheRPwsWV8MjZ1JmE3gKyh3x8hjoSwBA1d9bLKEtKLmUGregrxqkLfAH2rnaFeGMv8",
-      "submitted_at": "2026-06-24T20:05:54.888Z",
+      "signature": "4K9cm4D7nZXSGrTSyBBXWr9zrG9FNrWAVH3zensauuGMvJYBpSYfLQCeAZ6SmamumCFHmxW1HSW8RBX4dFXrC5GB",
+      "submitted_at": "2026-06-24T13:15:55.592Z",
       "processed_at": null,
-      "confirmed_at": "2026-06-24T20:05:56.995Z",
-      "finalized_at": "2026-06-24T20:06:09.876Z",
-      "slot_submitted": 471712031,
-      "slot_landed": 471712038,
-      "tip_paid_lamports": 303567,
+      "confirmed_at": "2026-06-24T13:15:57.891Z",
+      "finalized_at": "2026-06-24T13:16:08.937Z",
+      "slot_submitted": 471647116,
+      "slot_landed": 471647121,
+      "tip_paid_lamports": 5017,
       "retry_count": 0,
       "final_state": "Finalized",
-      "bundle_id": "4zigCzdFzZPBG65DbocaSXNheRPwsWV8MjZ1JmE3gKyh3x8hjoSwBA1d9bLKEtKLmUGregrxqkLfAH2rnaFeGMv8",
+      "bundle_id": "4K9cm4D7nZXSGrTSyBBXWr9zrG9FNrWAVH3zensauuGMvJYBpSYfLQCeAZ6SmamumCFHmxW1HSW8RBX4dFXrC5GB",
       "tip_trail": [
         {
           "attempt": 1,
-          "tip_lamports": 303567,
+          "tip_lamports": 5017,
+          "congestion_level": "LOW",
+          "percentile": "p50",
+          "submitted_at": "2026-06-24T13:15:55.799Z"
+        }
+      ],
+      "agent_decisions": [],
+      "confirmed_via": "rpc_polling"
+    },
+    {
+      "signature": "fault-tx6-stale-1782307063015",
+      "submitted_at": "2026-06-24T13:17:43.015Z",
+      "processed_at": null,
+      "confirmed_at": null,
+      "finalized_at": null,
+      "slot_submitted": 471647401,
+      "slot_landed": null,
+      "tip_paid_lamports": 1172,
+      "retry_count": 1,
+      "final_state": "Failed",
+      "bundle_id": "fault-tx6-stale-1782307063015",
+      "tip_trail": [
+        {
+          "attempt": 1,
+          "tip_lamports": 1172,
+          "congestion_level": "MEDIUM",
+          "percentile": "p50",
+          "submitted_at": "2026-06-24T13:17:43.018Z"
+        }
+      ],
+      "agent_decisions": [
+        {
+          "triggered_at": "2026-06-24T13:17:44.060Z",
+          "failure_type": "ExpiredBlockhash",
+          "network_context": {
+            "current_slot": 471647403,
+            "avg_confirmation_ms": 0,
+            "congestion_level": "LOW",
+            "recent_failure_rate": 0
+          },
+          "groq_response": {
+            "should_retry": true,
+            "new_tip_lamports": 1172,
+            "reason": "The failure type 'ExpiredBlockhash' is typically safe to retry with a fresh blockhash, and the current network congestion level is LOW, indicating a good time to retry. The recent average confirmation time is 0ms and the recent failure rate is 0.0%, suggesting a high likelihood of success. Given these conditions, retrying with the same tip level is reasonable.",
+            "confidence_score": 0.9
+          },
+          "gate_passed": true
+        }
+      ],
+      "confirmed_via": "rpc_polling",
+      "failure_type": "ExpiredBlockhash",
+      "ai_decision": "{\n  \"should_retry\": true,\n  \"new_tip_lamports\": 1172,\n  \"reason\": \"The failure type 'ExpiredBlockhash' is typically safe to retry with a fresh blockhash, and the current network congestion level is LOW, indicating a good time to retry. The recent average confirmation time is 0ms and the recent failure rate is 0.0%, suggesting a high likelihood of success. Given these conditions, retrying with the same tip level is reasonable.\",\n  \"confidence_score\": 0.9\n}"
+    },
+    {
+      "signature": "4rUWPcX1EcjPSVsnNRi4ktNncDRT4GNHj5cCmSWSkJrR3ZwzaLB8YZPe9wZ8zvAwvhHJNAWFCasrojoy9MrgyvbF",
+      "submitted_at": "2026-06-24T13:17:47.005Z",
+      "processed_at": null,
+      "confirmed_at": "2026-06-24T13:17:49.155Z",
+      "finalized_at": "2026-06-24T13:17:59.466Z",
+      "slot_submitted": 471647410,
+      "slot_landed": 471647415,
+      "tip_paid_lamports": 1172,
+      "retry_count": 0,
+      "final_state": "Finalized",
+      "bundle_id": "4rUWPcX1EcjPSVsnNRi4ktNncDRT4GNHj5cCmSWSkJrR3ZwzaLB8YZPe9wZ8zvAwvhHJNAWFCasrojoy9MrgyvbF",
+      "tip_trail": [],
+      "agent_decisions": [],
+      "confirmed_via": "rpc_polling"
+    },
+    {
+      "signature": "4UQ7pXtsFpBXCsk4R4KmE957z7zfq9d2qdV9tAKmi4USo6J1amAUQDe5cH9MmEkSXSMgCd9soDV4iRuardmZ3w5q",
+      "submitted_at": "2026-06-24T13:18:03.694Z",
+      "processed_at": "2026-06-24T13:18:04.080Z",
+      "confirmed_at": "2026-06-24T13:18:05.950Z",
+      "finalized_at": "2026-06-24T13:18:16.499Z",
+      "slot_submitted": 471647454,
+      "slot_landed": 471647459,
+      "tip_paid_lamports": 1172,
+      "retry_count": 0,
+      "final_state": "Finalized",
+      "bundle_id": "4UQ7pXtsFpBXCsk4R4KmE957z7zfq9d2qdV9tAKmi4USo6J1amAUQDe5cH9MmEkSXSMgCd9soDV4iRuardmZ3w5q",
+      "tip_trail": [
+        {
+          "attempt": 1,
+          "tip_lamports": 1172,
+          "congestion_level": "LOW",
+          "percentile": "p75",
+          "submitted_at": "2026-06-24T13:18:03.901Z"
+        }
+      ],
+      "agent_decisions": [],
+      "confirmed_via": "rpc_polling"
+    },
+    {
+      "signature": "58YByQQC1ysdhPcUusZRn9vRmY3Yd2xdXq422XzJ5CydYHYKKdd6mshaRv7YTwsRBuQGsGFrjxKZJTYzBG5TsPhq",
+      "submitted_at": "2026-06-24T13:18:22.435Z",
+      "processed_at": "2026-06-24T13:18:22.948Z",
+      "confirmed_at": "2026-06-24T13:18:24.894Z",
+      "finalized_at": "2026-06-24T13:18:35.544Z",
+      "slot_submitted": 471647504,
+      "slot_landed": 471647510,
+      "tip_paid_lamports": 1000,
+      "retry_count": 0,
+      "final_state": "Finalized",
+      "bundle_id": "58YByQQC1ysdhPcUusZRn9vRmY3Yd2xdXq422XzJ5CydYHYKKdd6mshaRv7YTwsRBuQGsGFrjxKZJTYzBG5TsPhq",
+      "tip_trail": [
+        {
+          "attempt": 1,
+          "tip_lamports": 1000,
+          "congestion_level": "LOW",
+          "percentile": "p75",
+          "submitted_at": "2026-06-24T13:18:22.667Z"
+        }
+      ],
+      "agent_decisions": [],
+      "confirmed_via": "rpc_polling"
+    },
+    {
+      "signature": "5SUtrGNkjrntqLjcHVNhNFWg8Yfb2RVTQU2vxkPYCm52S7G5hpw1FWK8EJ8oSzxhi6gRxPTDVJwqJFVuChygAyHk",
+      "submitted_at": "2026-06-24T13:18:40.434Z",
+      "processed_at": null,
+      "confirmed_at": "2026-06-24T13:18:42.729Z",
+      "finalized_at": "2026-06-24T13:18:53.873Z",
+      "slot_submitted": 471647551,
+      "slot_landed": 471647557,
+      "tip_paid_lamports": 295000,
+      "retry_count": 0,
+      "final_state": "Finalized",
+      "bundle_id": "5SUtrGNkjrntqLjcHVNhNFWg8Yfb2RVTQU2vxkPYCm52S7G5hpw1FWK8EJ8oSzxhi6gRxPTDVJwqJFVuChygAyHk",
+      "tip_trail": [
+        {
+          "attempt": 1,
+          "tip_lamports": 295000,
           "congestion_level": "LOW",
           "percentile": "p95",
-          "submitted_at": "2026-06-24T20:05:56.574Z"
+          "submitted_at": "2026-06-24T13:18:40.606Z"
+        }
+      ],
+      "agent_decisions": [],
+      "confirmed_via": "rpc_polling"
+    },
+    {
+      "signature": "3kDTWoUxZ7FtmzhzDzJkcyWjoYULvhzjRfu25nD6ySPSpfxQjyz3jtGEtFMgRaacgrJhA6UL9b9A4a5oD6BMprEN",
+      "submitted_at": "2026-06-24T13:18:59.915Z",
+      "processed_at": null,
+      "confirmed_at": "2026-06-24T13:19:02.270Z",
+      "finalized_at": "2026-06-24T13:19:13.229Z",
+      "slot_submitted": 471647603,
+      "slot_landed": 471647608,
+      "tip_paid_lamports": 16237,
+      "retry_count": 0,
+      "final_state": "Finalized",
+      "bundle_id": "3kDTWoUxZ7FtmzhzDzJkcyWjoYULvhzjRfu25nD6ySPSpfxQjyz3jtGEtFMgRaacgrJhA6UL9b9A4a5oD6BMprEN",
+      "tip_trail": [
+        {
+          "attempt": 1,
+          "tip_lamports": 16237,
+          "congestion_level": "LOW",
+          "percentile": "p95",
+          "submitted_at": "2026-06-24T13:19:00.158Z"
         }
       ],
       "agent_decisions": [],
