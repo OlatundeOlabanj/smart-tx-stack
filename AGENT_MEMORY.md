@@ -4,20 +4,20 @@
 
 ---
 
-## Run Summary — 2026-06-25T12:20:24.829Z
+## Run Summary — 2026-06-27T07:10:58.413Z
 
 | Metric | Value |
 |--------|-------|
 | Total Transactions | 11 |
-| Finalized | 9 |
-| Failed | 2 |
-| Success Rate | 81.8% |
-| Avg Confirmation | 1452ms |
-| Total Tips Paid | 56,404 lamports |
-| Slot Range | 471865694 – 471866449 (755 slots) |
-| AI Interventions | 2 |
-| AI Approved Retries | 2 |
-| AI Rejected Retries | 0 |
+| Finalized | 0 |
+| Failed | 11 |
+| Success Rate | 0.0% |
+| Avg Confirmation | 0ms |
+| Total Tips Paid | 1,430,987 lamports |
+| Slot Range | 472270472 – 472273237 (2765 slots) |
+| AI Interventions | 10 |
+| AI Approved Retries | 1 |
+| AI Rejected Retries | 9 |
 | Confirmed via gRPC | 0 txns (0%) |
 | Confirmed via RPC poll | 11 txns |
 
@@ -26,15 +26,15 @@
 ## Agent Observations
 
 ### Tip Behaviour
-- Tip range this run: **1,001 – 25,047 lamports** (avg: 5,128)
+- Tip range this run: **1,000 – 1,000,041 lamports** (avg: 130,090)
 - Transactions that required tip escalation: **0** of 11
 - Avg agent confidence score: **0.90** — high certainty across all decisions
 - Confidence gate did not block any retries this run
 
 ### Network Patterns Detected
-- Dominant congestion level: **LOW**
-- Congestion distribution: LOW: 2×
-- Avg processed→confirmed delta: **1452ms** (moderate)
+- Dominant congestion level: **CRITICAL**
+- Congestion distribution: CRITICAL: 10×
+- Avg processed→confirmed delta: **0ms** (healthy)
 
 ### Confirmation Method Breakdown
 - **0 txns** confirmed via Yellowstone gRPC stream (0%)
@@ -42,28 +42,40 @@
 - Note: gRPC confirmation requires active SOLINFRA_GRPC_KEY and wallet subscription
 
 ### Failure Events
-- TX sig `fault-tx3-178238...` — FeeTooLow
+- TX sig `EyEPEykFnhE4TEjZ...` — Timeout
+- TX sig `3W51PTGynZ4t9w9y...` — Timeout
+- TX sig `3FPYaJwR4ocepspg...` — Timeout
+- TX sig `19n2x8SwRCPfuneD...` — Timeout
+- TX sig `2GtYM69aU8LYzFyN...` — Timeout
 - TX sig `fault-tx6-stale-...` — ExpiredBlockhash
+- TX sig `32RdmBiWKm2RTanC...` — Unknown
+- TX sig `62PjiAczkdPzaChz...` — Timeout
+- TX sig `kLRfyDcgVmoeo11u...` — Timeout
+- TX sig `PknCya7mBSiYJqo1...` — Timeout
+- TX sig `2H8sHxLRQe7Yvy34...` — Timeout
 
 ### Sample Agent Reasoning
 
-**Decision 1** (FeeTooLow, confidence: 0.9)
-> "The failure type 'FeeTooLow' is retryable, and the current network congestion level is LOW, making it a good time to retry. Given the recent average confirmation time of 0ms and a failure rate of 0.0%, the cost of retrying is low. A higher tip of 2000 lamports is likely to succeed."
+**Decision 1** (Timeout, confidence: 0.9)
+> "The current network congestion level is CRITICAL and the recent failure rate is 100.0%, indicating severe network conditions that make retrying unlikely to succeed. The failure type of Timeout suggests that the transaction may have been impacted by these conditions. Given the high failure rate and critical congestion, retrying at this time is not likely to be successful."
 
-**Decision 2** (ExpiredBlockhash, confidence: 0.9)
-> "The failure type 'ExpiredBlockhash' is typically safe to retry with a fresh blockhash, and the current network congestion level is LOW, indicating a good time to retry. The recent average confirmation time is relatively fast at 1766ms, and the recent failure rate is 0.0%, suggesting a low risk of further failures. Given these conditions, retrying with the same tip of 1664 lamports is reasonable."
+**Decision 2** (Timeout, confidence: 0.9)
+> "The current network congestion level is CRITICAL, and the recent failure rate is 100.0%, indicating severe network conditions. Given the failure type is a timeout, which usually indicates congestion or RPC issues, retrying now is unlikely to succeed. The cost of retrying into such conditions outweighs the potential benefits, and the transaction has not been retried before, but the current state does not justify a retry."
+
+**Decision 3** (Timeout, confidence: 0.95)
+> "The current network congestion level is CRITICAL and the recent failure rate is 100.0%, indicating severe network conditions. Given the failure type is a timeout, which is often related to congestion or RPC issues, retrying under these conditions is unlikely to succeed. The cost of retrying, including potential additional fees and resource utilization, outweighs the potential benefit of a successful transaction at this time."
 
 ---
 
 ## Agent Recommendation for Next Run
 
-> "Network conditions were moderate. Current tip strategy is adequate. Monitor tip_trail escalations — if > 30% of transactions escalate, bump base urgency up one tier."
+> "Elevated failure rate detected (0.0%). Recommend increasing base tip to p50 and enabling automatic tip escalation on first retry. Consider reducing TX_COUNT during high congestion windows."
 
 ---
 
 ## Cross-Run Tip Intelligence
 
-> Analysed across **5** run(s). Trend: **→ Stable** | Avg success: **62.4%**
+> Analysed across **8** run(s). Trend: **↓ Degrading** | Avg success: **56.5%**
 
 | Date | TXns | Success | Avg Confirm | Avg Tip | gRPC Confirm |
 |------|------|---------|-------------|---------|--------------|
@@ -72,14 +84,17 @@
 | 2026-06-25 | 11 | 82% | 1253ms | 3,644 lam | 0% gRPC |
 | 2026-06-25 | 2 | 0% | 0ms | 1,422 lam | 0% gRPC |
 | 2026-06-25 | 11 | 82% | 1452ms | 5,128 lam | 0% gRPC |
+| 2026-06-25 | 10 | 80% | 1652ms | 15,376 lam | 0% gRPC |
+| 2026-06-26 | 5 | 60% | 1392ms | 2,264 lam | 0% gRPC |
+| 2026-06-27 | 11 | 0% | 0ms | 130,090 lam | 0% gRPC |
 
 ### Tip Recommendation for Next Run
 
-> Success rate below 80% — consider bumping base tip percentile from p25 to p50. Average tip per transaction: 19,071 lamports may be insufficient.
+> Success rate below 80% — consider bumping base tip percentile from p25 to p50. Average tip per transaction: 30,386 lamports may be insufficient.
 
 ### gRPC Stream Coverage
 
-Average **0%** of transactions confirmed via Yellowstone gRPC stream across last 5 run(s). gRPC stream confirmation not yet recorded — check SOLINFRA_GRPC_KEY in .env.
+Average **0%** of transactions confirmed via Yellowstone gRPC stream across last 8 run(s). gRPC stream confirmation not yet recorded — check SOLINFRA_GRPC_KEY in .env.
 
 ---
 

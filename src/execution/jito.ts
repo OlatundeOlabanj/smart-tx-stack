@@ -1,6 +1,10 @@
 // ============================================================
 // smart-tx-stack — src/execution/jito.ts
 // Jito bundle builder + submitter for Solana devnet
+// Uses /api/v1/transactions sendTransaction endpoint —
+// packs user instruction + tip transfer in a single tx.
+// Jito wraps it as a bundle internally, returns bundle ID
+// in x-bundle-id response header.
 // Made by TJS Code
 // ============================================================
 
@@ -10,17 +14,16 @@ import {
   PublicKey,
   SystemProgram,
   Transaction,
+  TransactionInstruction,
 } from "@solana/web3.js";
-import bs58 from "bs58";
 import { BundleSubmissionResult, TransactionFailure } from "../types";
 
-// ── Jito devnet block engine endpoint ────────────────────────
-// NOTE: dallas.devnet (not testnet) for devnet submissions
-const JITO_BLOCK_ENGINE_URL = "https://dallas.devnet.block-engine.jito.wtf";
-const JITO_BUNDLES_URL      = `${JITO_BLOCK_ENGINE_URL}/api/v1/bundles`;
+// ── Jito testnet block engine ─────────────────────────────────
+const JITO_BLOCK_ENGINE_URL = "https://dallas.testnet.block-engine.jito.wtf";
+const JITO_TX_URL           = `${JITO_BLOCK_ENGINE_URL}/api/v1/transactions`;
 
-// Known devnet tip accounts
-const KNOWN_DEVNET_TIP_ACCOUNTS = [
+// Known Jito tip accounts (mainnet — also used on testnet block engine)
+const KNOWN_TIP_ACCOUNTS = [
   "96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5",
   "HFqU5x63VTqvQss8hp11i4wVV8bD44PvwucfZ2bU7gRe",
   "Cw8CFyM9FkoMi7K7Crf6HNQqf4uEMzpKw6QNghXLvLkY",
@@ -51,8 +54,8 @@ export async function getTipAccounts(): Promise<string[]> {
     return accounts;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.warn(`[JITO] Could not fetch live tip accounts (${msg}), using known devnet accounts`);
-    return KNOWN_DEVNET_TIP_ACCOUNTS;
+    console.warn(`[JITO] Could not fetch live tip accounts (${msg}), using known accounts`);
+    return KNOWN_TIP_ACCOUNTS;
   }
 }
 
@@ -62,85 +65,107 @@ export async function getRandomTipAccount(): Promise<PublicKey> {
   return new PublicKey(chosen);
 }
 
-// ── Build and submit a Jito bundle ────────────────────────────
-// Bundle = [userTx, tipTx] serialized as base58 strings
-// Jito block engine requires base58 — NOT base64
+// ── Build and submit via Jito sendTransaction ─────────────────
+// Packs user instruction + tip transfer into ONE transaction.
+// Submits to /api/v1/transactions — Jito wraps it as a bundle
+// internally. Bundle ID returned in x-bundle-id response header.
+// Uses base64 encoding (sendTransaction requirement).
 export async function buildAndSubmitBundle(
-  connection:   Connection,
-  transaction:  Transaction,
-  payer:        Keypair,
-  tipLamports:  number,
-  tipAccount:   PublicKey,
+  connection:  Connection,
+  transaction: Transaction,
+  payer:       Keypair,
+  tipLamports: number,
+  tipAccount:  PublicKey,
 ): Promise<BundleSubmissionResult> {
   let submissionSlot = 0;
   try {
     submissionSlot = await connection.getSlot("confirmed");
   } catch (_) { /* non-fatal */ }
 
-  // ── Fetch blockhash ───────────────────────────────────────
+  // ── Fetch fresh blockhash ─────────────────────────────────
   let blockhash: string;
   try {
-    const bh     = await connection.getLatestBlockhash("confirmed");
-    blockhash    = bh.blockhash;
+    const bh  = await connection.getLatestBlockhash("confirmed");
+    blockhash = bh.blockhash;
   } catch (err: unknown) {
     throw new Error(`Failed to fetch blockhash for bundle: ${(err as Error).message}`);
   }
 
-  // ── Build user transaction ────────────────────────────────
-  transaction.recentBlockhash = blockhash;
-  transaction.feePayer        = payer.publicKey;
-  transaction.sign(payer);
+  // ── Extract user instructions ─────────────────────────────
+  // Pull instructions from the incoming transaction so we can
+  // pack them alongside the tip transfer in a single tx
+  const userInstructions: TransactionInstruction[] = transaction.instructions.length > 0
+    ? transaction.instructions
+    : [];
 
-  // ── Build tip transaction ─────────────────────────────────
-  const tipTx = new Transaction().add(
-    SystemProgram.transfer({
-      fromPubkey: payer.publicKey,
-      toPubkey:   tipAccount,
-      lamports:   tipLamports,
-    }),
-  );
-  tipTx.recentBlockhash = blockhash;
-  tipTx.feePayer        = payer.publicKey;
-  tipTx.sign(payer);
+  // ── Build tip instruction ─────────────────────────────────
+  const tipInstruction = SystemProgram.transfer({
+    fromPubkey: payer.publicKey,
+    toPubkey:   tipAccount,
+    lamports:   tipLamports,
+  });
 
-  // ── Serialize as base58 (Jito requirement) ────────────────
-  // base64 causes "transaction #0 could not be decoded" error
-  const serializedTxs = [
-    bs58.encode(transaction.serialize()),
-    bs58.encode(tipTx.serialize()),
-  ];
+  // ── Build combined transaction: [userIx..., tipIx] ────────
+  // Single transaction with both payload and tip packed together
+  const combinedTx = new Transaction();
+  for (const ix of userInstructions) {
+    combinedTx.add(ix);
+  }
+  combinedTx.add(tipInstruction);
+
+  combinedTx.recentBlockhash = blockhash;
+  combinedTx.feePayer        = payer.publicKey;
+  combinedTx.sign(payer);
+
+  // ── Pre-submission simulation ─────────────────────────────
+  // Validates compute budget and instruction logic before Jito
+  try {
+    console.log("[JITO] Simulating transaction before submission...");
+    const sim = await connection.simulateTransaction(combinedTx, [payer]);
+    if (sim.value.err) {
+      console.warn(`[JITO] Simulation warning: ${JSON.stringify(sim.value.err)}`);
+    } else {
+      console.log(`[JITO] Simulation passed — units: ${sim.value.unitsConsumed ?? "N/A"}`);
+    }
+  } catch (_) { /* non-fatal */ }
+
+  // ── Serialize as base64 (sendTransaction requirement) ─────
+  const serialized = combinedTx.serialize().toString("base64");
 
   console.log(
-    `[JITO] Submitting bundle — tip: ${tipLamports} lamports` +
+    `[JITO] Submitting via sendTransaction — tip: ${tipLamports} lamports` +
     ` → ${tipAccount.toBase58().slice(0, 12)}... slot: ${submissionSlot}`,
   );
 
-  // ── POST to Jito block engine ─────────────────────────────
-  let bundleResponse: Response;
+  // ── POST to /api/v1/transactions ──────────────────────────
+  let response: Response;
   try {
-    bundleResponse = await fetch(JITO_BUNDLES_URL, {
+    response = await fetch(JITO_TX_URL, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         jsonrpc: "2.0",
         id:      1,
-        method:  "sendBundle",
-        params:  [serializedTxs],
+        method:  "sendTransaction",
+        params:  [serialized, { encoding: "base64" }],
       }),
       signal: AbortSignal.timeout(15_000),
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.warn(`[JITO] Bundle engine unreachable: ${msg} — falling back`);
-    return fallbackSubmit(connection, transaction, payer, submissionSlot);
+    console.warn(`[JITO] Jito unreachable: ${msg} — falling back to standard RPC`);
+    return fallbackSubmit(connection, combinedTx, payer, submissionSlot);
   }
 
-  const responseData: any = await bundleResponse.json();
+  // ── Extract bundle ID from response header ────────────────
+  const bundleId = response.headers.get("x-bundle-id") ?? "";
+
+  const responseData: any = await response.json().catch(() => ({}));
 
   if (responseData.error) {
     const jitoErr = parseJitoError(responseData.error);
     if (jitoErr.isLeaderSkipped) {
-      console.error(`[JITO] Leader skipped slot — surfacing as JitoLeaderSkipped`);
+      console.error("[JITO] Leader skipped slot — surfacing as JitoLeaderSkipped");
       return {
         bundle_id:       "",
         submission_slot: submissionSlot,
@@ -149,15 +174,27 @@ export async function buildAndSubmitBundle(
         used_fallback:   false,
       };
     }
-    console.warn(`[JITO] Bundle error (${jitoErr.message}) — falling back`);
-    return fallbackSubmit(connection, transaction, payer, submissionSlot);
+    console.warn(`[JITO] Jito error (${jitoErr.message}) — falling back`);
+    return fallbackSubmit(connection, combinedTx, payer, submissionSlot);
   }
 
-  const bundleId: string = responseData.result ?? "";
-  console.log(`[JITO] Bundle accepted — bundleId: ${bundleId.slice(0, 12)}... slot: ${submissionSlot}`);
+  // ── Success path ──────────────────────────────────────────
+  // responseData.result is the transaction signature
+  const signature = responseData.result ?? bundleId;
+
+  if (!signature) {
+    console.warn("[JITO] No signature in response — falling back");
+    return fallbackSubmit(connection, combinedTx, payer, submissionSlot);
+  }
+
+  if (bundleId) {
+    console.log(`[JITO] Bundle accepted — bundleId: ${bundleId.slice(0, 12)}... sig: ${signature.slice(0, 12)}...`);
+  } else {
+    console.log(`[JITO] Transaction accepted — sig: ${signature.slice(0, 12)}... slot: ${submissionSlot}`);
+  }
 
   return {
-    bundle_id:       bundleId,
+    bundle_id:       signature,   // use sig as the tracking ID for lifecycle
     submission_slot: submissionSlot,
     success:         true,
     used_fallback:   false,
@@ -171,7 +208,7 @@ async function fallbackSubmit(
   payer:          Keypair,
   submissionSlot: number,
 ): Promise<BundleSubmissionResult> {
-  console.warn("[JITO] FALLBACK — submitting via standard sendRawTransaction (no Jito bundle)");
+  console.warn("[JITO] FALLBACK — submitting via standard sendRawTransaction");
   try {
     const bh                    = await connection.getLatestBlockhash("confirmed");
     transaction.recentBlockhash = bh.blockhash;
@@ -182,7 +219,7 @@ async function fallbackSubmit(
       transaction.serialize(),
       { skipPreflight: false, preflightCommitment: "confirmed" },
     );
-    console.log(`[JITO] Fallback submission sent — sig: ${signature.slice(0, 12)}...`);
+    console.log(`[JITO] Fallback sent — sig: ${signature.slice(0, 12)}...`);
     return {
       bundle_id:       signature,
       submission_slot: submissionSlot,

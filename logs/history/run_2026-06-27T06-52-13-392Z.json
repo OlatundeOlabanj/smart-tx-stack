@@ -1,0 +1,475 @@
+{
+  "run_id": "run_2026-06-27T06-52-13-392Z",
+  "run_at": "2026-06-27T06:52:13.392Z",
+  "generated_at": "2026-06-27T07:10:58.409Z",
+  "total_entries": 11,
+  "summary": {
+    "total_transactions": 11,
+    "successful": 0,
+    "failed": 11,
+    "success_rate_pct": 0,
+    "avg_confirmation_ms": 0,
+    "total_tips_paid_lamports": 1430987,
+    "ai_interventions": 10,
+    "ai_approved_retries": 1,
+    "ai_rejected_retries": 9
+  },
+  "entries": [
+    {
+      "signature": "EyEPEykFnhE4TEjZtL8ELPWusppvjBV9uN6vNqQu31CjhFffb2xrumTruQifygSBPaWJiqxuvAbn61P7KnYtf1e",
+      "submitted_at": "2026-06-27T06:52:13.392Z",
+      "processed_at": null,
+      "confirmed_at": null,
+      "finalized_at": null,
+      "slot_submitted": 472270508,
+      "slot_landed": null,
+      "tip_paid_lamports": 1000,
+      "retry_count": 0,
+      "final_state": "Failed",
+      "bundle_id": "EyEPEykFnhE4TEjZtL8ELPWusppvjBV9uN6vNqQu31CjhFffb2xrumTruQifygSBPaWJiqxuvAbn61P7KnYtf1e",
+      "tip_trail": [
+        {
+          "attempt": 1,
+          "tip_lamports": 1000,
+          "congestion_level": "LOW",
+          "percentile": "p25",
+          "submitted_at": "2026-06-27T06:52:13.803Z"
+        }
+      ],
+      "agent_decisions": [
+        {
+          "triggered_at": "2026-06-27T06:53:45.585Z",
+          "failure_type": "Timeout",
+          "network_context": {
+            "current_slot": 472270757,
+            "avg_confirmation_ms": 0,
+            "congestion_level": "CRITICAL",
+            "recent_failure_rate": 1
+          },
+          "groq_response": {
+            "should_retry": false,
+            "new_tip_lamports": 0,
+            "reason": "The current network congestion level is CRITICAL and the recent failure rate is 100.0%, indicating severe network conditions that make retrying unlikely to succeed. The failure type of Timeout suggests that the transaction may have been impacted by these conditions. Given the high failure rate and critical congestion, retrying at this time is not likely to be successful.",
+            "confidence_score": 0.9
+          },
+          "gate_passed": false
+        }
+      ],
+      "confirmed_via": "rpc_polling",
+      "failure_type": "Timeout",
+      "ai_decision": "{\n  \"should_retry\": false,\n  \"new_tip_lamports\": 0,\n  \"reason\": \"The current network congestion level is CRITICAL and the recent failure rate is 100.0%, indicating severe network conditions that make retrying unlikely to succeed. The failure type of Timeout suggests that the transaction may have been impacted by these conditions. Given the high failure rate and critical congestion, retrying at this time is not likely to be successful.\",\n  \"confidence_score\": 0.9\n}"
+    },
+    {
+      "signature": "3W51PTGynZ4t9w9yJVWKZQxZEwYRHS2C7ZFZjN9FLkAtfCReZZeRvYe8Rihie9t9Cf3XAhiFvCEyj1BEnnK832r5",
+      "submitted_at": "2026-06-27T06:53:54.928Z",
+      "processed_at": null,
+      "confirmed_at": null,
+      "finalized_at": null,
+      "slot_submitted": 472270782,
+      "slot_landed": null,
+      "tip_paid_lamports": 1000,
+      "retry_count": 0,
+      "final_state": "Failed",
+      "bundle_id": "3W51PTGynZ4t9w9yJVWKZQxZEwYRHS2C7ZFZjN9FLkAtfCReZZeRvYe8Rihie9t9Cf3XAhiFvCEyj1BEnnK832r5",
+      "tip_trail": [
+        {
+          "attempt": 1,
+          "tip_lamports": 1000,
+          "congestion_level": "CRITICAL",
+          "percentile": "p25",
+          "submitted_at": "2026-06-27T06:53:55.100Z"
+        }
+      ],
+      "agent_decisions": [
+        {
+          "triggered_at": "2026-06-27T06:55:27.987Z",
+          "failure_type": "Timeout",
+          "network_context": {
+            "current_slot": 472271029,
+            "avg_confirmation_ms": 0,
+            "congestion_level": "CRITICAL",
+            "recent_failure_rate": 1
+          },
+          "groq_response": {
+            "should_retry": false,
+            "new_tip_lamports": 0,
+            "reason": "The current network congestion level is CRITICAL, and the recent failure rate is 100.0%, indicating severe network conditions. Given the failure type is a timeout, which usually indicates congestion or RPC issues, retrying now is unlikely to succeed. The cost of retrying into such conditions outweighs the potential benefits, and the transaction has not been retried before, but the current state does not justify a retry.",
+            "confidence_score": 0.9
+          },
+          "gate_passed": false
+        }
+      ],
+      "confirmed_via": "rpc_polling",
+      "failure_type": "Timeout",
+      "ai_decision": "{\n  \"should_retry\": false,\n  \"new_tip_lamports\": 0,\n  \"reason\": \"The current network congestion level is CRITICAL, and the recent failure rate is 100.0%, indicating severe network conditions. Given the failure type is a timeout, which usually indicates congestion or RPC issues, retrying now is unlikely to succeed. The cost of retrying into such conditions outweighs the potential benefits, and the transaction has not been retried before, but the current state does not justify a retry.\",\n  \"confidence_score\": 0.9\n}"
+    },
+    {
+      "signature": "3FPYaJwR4ocepspgKJPrFYDMgyLqgMcpfnAJgJCW85uJPJ58H5u96PmNWTGVwWWKLvx87BnN1ejHw33fWzKNGnJv",
+      "submitted_at": "2026-06-27T06:55:37.937Z",
+      "processed_at": null,
+      "confirmed_at": null,
+      "finalized_at": null,
+      "slot_submitted": 472271055,
+      "slot_landed": null,
+      "tip_paid_lamports": 1000,
+      "retry_count": 0,
+      "final_state": "Failed",
+      "bundle_id": "3FPYaJwR4ocepspgKJPrFYDMgyLqgMcpfnAJgJCW85uJPJ58H5u96PmNWTGVwWWKLvx87BnN1ejHw33fWzKNGnJv",
+      "tip_trail": [
+        {
+          "attempt": 1,
+          "tip_lamports": 1000,
+          "congestion_level": "CRITICAL",
+          "percentile": "p25",
+          "submitted_at": "2026-06-27T06:55:38.244Z"
+        }
+      ],
+      "agent_decisions": [
+        {
+          "triggered_at": "2026-06-27T06:57:10.485Z",
+          "failure_type": "Timeout",
+          "network_context": {
+            "current_slot": 472271299,
+            "avg_confirmation_ms": 0,
+            "congestion_level": "CRITICAL",
+            "recent_failure_rate": 1
+          },
+          "groq_response": {
+            "should_retry": false,
+            "new_tip_lamports": 0,
+            "reason": "The current network congestion level is CRITICAL and the recent failure rate is 100.0%, indicating severe network conditions. Given the failure type is a timeout, which is often related to congestion or RPC issues, retrying under these conditions is unlikely to succeed. The cost of retrying, including potential additional fees and resource utilization, outweighs the potential benefit of a successful transaction at this time.",
+            "confidence_score": 0.95
+          },
+          "gate_passed": false
+        }
+      ],
+      "confirmed_via": "rpc_polling",
+      "failure_type": "Timeout",
+      "ai_decision": "{\n  \"should_retry\": false,\n  \"new_tip_lamports\": 0,\n  \"reason\": \"The current network congestion level is CRITICAL and the recent failure rate is 100.0%, indicating severe network conditions. Given the failure type is a timeout, which is often related to congestion or RPC issues, retrying under these conditions is unlikely to succeed. The cost of retrying, including potential additional fees and resource utilization, outweighs the potential benefit of a successful transaction at this time.\",\n  \"confidence_score\": 0.95\n}"
+    },
+    {
+      "signature": "19n2x8SwRCPfuneDrGHXhVEk4Tjg96Hpx1A5vY3JiGNNagR3TzgkG7GHgtS3AgLB5BcF2dRR4fyBMvn4AzjN3eT",
+      "submitted_at": "2026-06-27T06:57:30.374Z",
+      "processed_at": null,
+      "confirmed_at": null,
+      "finalized_at": null,
+      "slot_submitted": 472271352,
+      "slot_landed": null,
+      "tip_paid_lamports": 2000,
+      "retry_count": 0,
+      "final_state": "Failed",
+      "bundle_id": "19n2x8SwRCPfuneDrGHXhVEk4Tjg96Hpx1A5vY3JiGNNagR3TzgkG7GHgtS3AgLB5BcF2dRR4fyBMvn4AzjN3eT",
+      "tip_trail": [
+        {
+          "attempt": 1,
+          "tip_lamports": 2000,
+          "congestion_level": "CRITICAL",
+          "percentile": "p50",
+          "submitted_at": "2026-06-27T06:57:30.848Z"
+        }
+      ],
+      "agent_decisions": [
+        {
+          "triggered_at": "2026-06-27T06:59:07.797Z",
+          "failure_type": "Timeout",
+          "network_context": {
+            "current_slot": 472271592,
+            "avg_confirmation_ms": 0,
+            "congestion_level": "CRITICAL",
+            "recent_failure_rate": 1
+          },
+          "groq_response": {
+            "should_retry": false,
+            "new_tip_lamports": 0,
+            "reason": "The current network congestion level is CRITICAL, and the recent failure rate is 100.0%, indicating severe network conditions. Given the failure type is a timeout, which is retryable, but the current conditions do not favor a successful retry. The cost of retrying into such a congested network outweighs the potential benefits, especially considering the transaction has not been retried before but the conditions are unfavorable.",
+            "confidence_score": 0.9
+          },
+          "gate_passed": false
+        }
+      ],
+      "confirmed_via": "rpc_polling",
+      "failure_type": "Timeout",
+      "ai_decision": "{\n  \"should_retry\": false,\n  \"new_tip_lamports\": 0,\n  \"reason\": \"The current network congestion level is CRITICAL, and the recent failure rate is 100.0%, indicating severe network conditions. Given the failure type is a timeout, which is retryable, but the current conditions do not favor a successful retry. The cost of retrying into such a congested network outweighs the potential benefits, especially considering the transaction has not been retried before but the conditions are unfavorable.\",\n  \"confidence_score\": 0.9\n}"
+    },
+    {
+      "signature": "2GtYM69aU8LYzFyNnTJjxQrJi5bXiGkSFn8LaA3aDGumXYHXN7MwNhCEuVwPcusRQ4Tj87eUJpXNGqJJBPgYCytJ",
+      "submitted_at": "2026-06-27T06:59:18.200Z",
+      "processed_at": null,
+      "confirmed_at": null,
+      "finalized_at": null,
+      "slot_submitted": 472271633,
+      "slot_landed": null,
+      "tip_paid_lamports": 1435,
+      "retry_count": 0,
+      "final_state": "Failed",
+      "bundle_id": "2GtYM69aU8LYzFyNnTJjxQrJi5bXiGkSFn8LaA3aDGumXYHXN7MwNhCEuVwPcusRQ4Tj87eUJpXNGqJJBPgYCytJ",
+      "tip_trail": [
+        {
+          "attempt": 1,
+          "tip_lamports": 1435,
+          "congestion_level": "CRITICAL",
+          "percentile": "p50",
+          "submitted_at": "2026-06-27T06:59:18.405Z"
+        }
+      ],
+      "agent_decisions": [
+        {
+          "triggered_at": "2026-06-27T07:00:50.599Z",
+          "failure_type": "Timeout",
+          "network_context": {
+            "current_slot": 472271877,
+            "avg_confirmation_ms": 0,
+            "congestion_level": "CRITICAL",
+            "recent_failure_rate": 1
+          },
+          "groq_response": {
+            "should_retry": false,
+            "new_tip_lamports": 0,
+            "reason": "The current network congestion level is CRITICAL, and the recent failure rate is 100.0%, indicating severe network conditions. Given the failure type is a timeout, which usually indicates congestion or RPC issues, retrying now is unlikely to succeed. The cost of retrying into such conditions outweighs the potential benefit, especially considering the transaction has not been retried before but the network conditions are unfavorable.",
+            "confidence_score": 0.9
+          },
+          "gate_passed": false
+        }
+      ],
+      "confirmed_via": "rpc_polling",
+      "failure_type": "Timeout",
+      "ai_decision": "{\n  \"should_retry\": false,\n  \"new_tip_lamports\": 0,\n  \"reason\": \"The current network congestion level is CRITICAL, and the recent failure rate is 100.0%, indicating severe network conditions. Given the failure type is a timeout, which usually indicates congestion or RPC issues, retrying now is unlikely to succeed. The cost of retrying into such conditions outweighs the potential benefit, especially considering the transaction has not been retried before but the network conditions are unfavorable.\",\n  \"confidence_score\": 0.9\n}"
+    },
+    {
+      "signature": "fault-tx6-stale-1782543745301",
+      "submitted_at": "2026-06-27T07:02:25.303Z",
+      "processed_at": null,
+      "confirmed_at": null,
+      "finalized_at": null,
+      "slot_submitted": 472272129,
+      "slot_landed": null,
+      "tip_paid_lamports": 1000,
+      "retry_count": 1,
+      "final_state": "Failed",
+      "bundle_id": "fault-tx6-stale-1782543745301",
+      "tip_trail": [
+        {
+          "attempt": 1,
+          "tip_lamports": 1000,
+          "congestion_level": "MEDIUM",
+          "percentile": "p50",
+          "submitted_at": "2026-06-27T07:02:25.303Z"
+        }
+      ],
+      "agent_decisions": [
+        {
+          "triggered_at": "2026-06-27T07:02:26.316Z",
+          "failure_type": "ExpiredBlockhash",
+          "network_context": {
+            "current_slot": 472272132,
+            "avg_confirmation_ms": 0,
+            "congestion_level": "CRITICAL",
+            "recent_failure_rate": 1
+          },
+          "groq_response": {
+            "should_retry": true,
+            "new_tip_lamports": 5000,
+            "reason": "The failure type 'ExpiredBlockhash' is typically safe to retry with a fresh blockhash, and although the current network congestion is critical, the recent average confirmation time is 0ms, suggesting that transactions are not being processed at all, making it a good time to retry with an increased tip to incentivize processing. Given the high failure rate, increasing the tip is necessary to succeed. The current retry count is 0, so it's not too late to retry.",
+            "confidence_score": 0.8
+          },
+          "gate_passed": true
+        }
+      ],
+      "confirmed_via": "rpc_polling",
+      "failure_type": "ExpiredBlockhash",
+      "ai_decision": "{\n  \"should_retry\": true,\n  \"new_tip_lamports\": 5000,\n  \"reason\": \"The failure type 'ExpiredBlockhash' is typically safe to retry with a fresh blockhash, and although the current network congestion is critical, the recent average confirmation time is 0ms, suggesting that transactions are not being processed at all, making it a good time to retry with an increased tip to incentivize processing. Given the high failure rate, increasing the tip is necessary to succeed. The current retry count is 0, so it's not too late to retry.\",\n  \"confidence_score\": 0.8\n}"
+    },
+    {
+      "signature": "32RdmBiWKm2RTanC9MexuQtjkE8ZDUQF2H2S1dusTNdnq8xRg7xRdsvwJdGH3xF7jjSE3h6wrT6n3zfeuSErpJ4v",
+      "submitted_at": "2026-06-27T07:02:28.974Z",
+      "processed_at": null,
+      "confirmed_at": null,
+      "finalized_at": null,
+      "slot_submitted": 472272138,
+      "slot_landed": null,
+      "tip_paid_lamports": 5000,
+      "retry_count": 0,
+      "final_state": "Failed",
+      "bundle_id": "32RdmBiWKm2RTanC9MexuQtjkE8ZDUQF2H2S1dusTNdnq8xRg7xRdsvwJdGH3xF7jjSE3h6wrT6n3zfeuSErpJ4v",
+      "tip_trail": [],
+      "agent_decisions": [],
+      "confirmed_via": "rpc_polling"
+    },
+    {
+      "signature": "62PjiAczkdPzaChzzfpmeF5Z4Rm6T85aGexV4hfysMGugfKtxZ9f7swmzE1v1Ling1EvVn68Ga4mHwV8gWjpwph2",
+      "submitted_at": "2026-06-27T07:04:16.598Z",
+      "processed_at": null,
+      "confirmed_at": null,
+      "finalized_at": null,
+      "slot_submitted": 472272426,
+      "slot_landed": null,
+      "tip_paid_lamports": 10000,
+      "retry_count": 0,
+      "final_state": "Failed",
+      "bundle_id": "62PjiAczkdPzaChzzfpmeF5Z4Rm6T85aGexV4hfysMGugfKtxZ9f7swmzE1v1Ling1EvVn68Ga4mHwV8gWjpwph2",
+      "tip_trail": [
+        {
+          "attempt": 1,
+          "tip_lamports": 10000,
+          "congestion_level": "CRITICAL",
+          "percentile": "p75",
+          "submitted_at": "2026-06-27T07:04:16.804Z"
+        }
+      ],
+      "agent_decisions": [
+        {
+          "triggered_at": "2026-06-27T07:05:48.356Z",
+          "failure_type": "Timeout",
+          "network_context": {
+            "current_slot": 472272667,
+            "avg_confirmation_ms": 0,
+            "congestion_level": "CRITICAL",
+            "recent_failure_rate": 1
+          },
+          "groq_response": {
+            "should_retry": false,
+            "new_tip_lamports": 0,
+            "reason": "The current network congestion level is CRITICAL, indicating severe congestion, and the recent failure rate is 100.0%, making it unlikely for the transaction to succeed even with a higher tip. The failure type is a timeout, which is retryable, but the current conditions do not favor a retry. Given the high failure rate and critical congestion, it's not the right time to retry, as the cost may outweigh the benefit.",
+            "confidence_score": 0.9
+          },
+          "gate_passed": false
+        }
+      ],
+      "confirmed_via": "rpc_polling",
+      "failure_type": "Timeout",
+      "ai_decision": "{\n  \"should_retry\": false,\n  \"new_tip_lamports\": 0,\n  \"reason\": \"The current network congestion level is CRITICAL, indicating severe congestion, and the recent failure rate is 100.0%, making it unlikely for the transaction to succeed even with a higher tip. The failure type is a timeout, which is retryable, but the current conditions do not favor a retry. Given the high failure rate and critical congestion, it's not the right time to retry, as the cost may outweigh the benefit.\",\n  \"confidence_score\": 0.9\n}"
+    },
+    {
+      "signature": "kLRfyDcgVmoeo11uzRWGb7YaYsw2o96bQvmkNHWAkZYgW5cLLsPLfC9373yNLgWK7nbJ2vGHdjqMBXAT1kfX5C8",
+      "submitted_at": "2026-06-27T07:06:02.945Z",
+      "processed_at": null,
+      "confirmed_at": null,
+      "finalized_at": null,
+      "slot_submitted": 472272703,
+      "slot_landed": null,
+      "tip_paid_lamports": 18473,
+      "retry_count": 0,
+      "final_state": "Failed",
+      "bundle_id": "kLRfyDcgVmoeo11uzRWGb7YaYsw2o96bQvmkNHWAkZYgW5cLLsPLfC9373yNLgWK7nbJ2vGHdjqMBXAT1kfX5C8",
+      "tip_trail": [
+        {
+          "attempt": 1,
+          "tip_lamports": 18473,
+          "congestion_level": "CRITICAL",
+          "percentile": "p75",
+          "submitted_at": "2026-06-27T07:06:03.199Z"
+        }
+      ],
+      "agent_decisions": [
+        {
+          "triggered_at": "2026-06-27T07:07:34.851Z",
+          "failure_type": "Timeout",
+          "network_context": {
+            "current_slot": 472272946,
+            "avg_confirmation_ms": 0,
+            "congestion_level": "CRITICAL",
+            "recent_failure_rate": 1
+          },
+          "groq_response": {
+            "should_retry": false,
+            "new_tip_lamports": 0,
+            "reason": "The current network congestion level is CRITICAL and the recent failure rate is 100.0%, indicating severe congestion. Given the failure type is a timeout, which is often caused by congestion or RPC issues, retrying under these conditions is unlikely to succeed. The cost of retrying, including the potential for further timeouts or failures, outweighs the potential benefit.",
+            "confidence_score": 0.9
+          },
+          "gate_passed": false
+        }
+      ],
+      "confirmed_via": "rpc_polling",
+      "failure_type": "Timeout",
+      "ai_decision": "{\n  \"should_retry\": false,\n  \"new_tip_lamports\": 0,\n  \"reason\": \"The current network congestion level is CRITICAL and the recent failure rate is 100.0%, indicating severe congestion. Given the failure type is a timeout, which is often caused by congestion or RPC issues, retrying under these conditions is unlikely to succeed. The cost of retrying, including the potential for further timeouts or failures, outweighs the potential benefit.\",\n  \"confidence_score\": 0.9\n}"
+    },
+    {
+      "signature": "PknCya7mBSiYJqo1ex4kNQrKwY2RmBsyaBsTsDkVfmVRjRyPRspnnsvTycwwcmtcjyrSV5boKfMKUMk4o6W2LdU",
+      "submitted_at": "2026-06-27T07:07:45.008Z",
+      "processed_at": null,
+      "confirmed_at": null,
+      "finalized_at": null,
+      "slot_submitted": 472272972,
+      "slot_landed": null,
+      "tip_paid_lamports": 1000041,
+      "retry_count": 0,
+      "final_state": "Failed",
+      "bundle_id": "PknCya7mBSiYJqo1ex4kNQrKwY2RmBsyaBsTsDkVfmVRjRyPRspnnsvTycwwcmtcjyrSV5boKfMKUMk4o6W2LdU",
+      "tip_trail": [
+        {
+          "attempt": 1,
+          "tip_lamports": 1000041,
+          "congestion_level": "CRITICAL",
+          "percentile": "p95",
+          "submitted_at": "2026-06-27T07:07:45.191Z"
+        }
+      ],
+      "agent_decisions": [
+        {
+          "triggered_at": "2026-06-27T07:09:17.459Z",
+          "failure_type": "Timeout",
+          "network_context": {
+            "current_slot": 472273214,
+            "avg_confirmation_ms": 0,
+            "congestion_level": "CRITICAL",
+            "recent_failure_rate": 1
+          },
+          "groq_response": {
+            "should_retry": false,
+            "new_tip_lamports": 0,
+            "reason": "The current network congestion level is CRITICAL, and the recent failure rate is 100.0%, indicating severe network conditions. Given the failure type is a timeout, which is often related to congestion or RPC issues, retrying under these conditions is unlikely to succeed. The cost of retrying, in terms of lamports and potential further delays, outweighs the potential benefits. Therefore, it's not advisable to retry the transaction at this time.",
+            "confidence_score": 0.9
+          },
+          "gate_passed": false
+        }
+      ],
+      "confirmed_via": "rpc_polling",
+      "failure_type": "Timeout",
+      "ai_decision": "{\n  \"should_retry\": false,\n  \"new_tip_lamports\": 0,\n  \"reason\": \"The current network congestion level is CRITICAL, and the recent failure rate is 100.0%, indicating severe network conditions. Given the failure type is a timeout, which is often related to congestion or RPC issues, retrying under these conditions is unlikely to succeed. The cost of retrying, in terms of lamports and potential further delays, outweighs the potential benefits. Therefore, it's not advisable to retry the transaction at this time.\",\n  \"confidence_score\": 0.9\n}"
+    },
+    {
+      "signature": "2H8sHxLRQe7Yvy345KHfRxc8Pmi2HQR2GjfxEH9Zpamys12P7RDdpZqGbe9iVRB82XHmPCv84muZxtyyePuxsPvo",
+      "submitted_at": "2026-06-27T07:09:26.592Z",
+      "processed_at": null,
+      "confirmed_at": null,
+      "finalized_at": null,
+      "slot_submitted": 472273237,
+      "slot_landed": null,
+      "tip_paid_lamports": 390038,
+      "retry_count": 0,
+      "final_state": "Failed",
+      "bundle_id": "2H8sHxLRQe7Yvy345KHfRxc8Pmi2HQR2GjfxEH9Zpamys12P7RDdpZqGbe9iVRB82XHmPCv84muZxtyyePuxsPvo",
+      "tip_trail": [
+        {
+          "attempt": 1,
+          "tip_lamports": 390038,
+          "congestion_level": "CRITICAL",
+          "percentile": "p95",
+          "submitted_at": "2026-06-27T07:09:26.773Z"
+        }
+      ],
+      "agent_decisions": [
+        {
+          "triggered_at": "2026-06-27T07:10:58.322Z",
+          "failure_type": "Timeout",
+          "network_context": {
+            "current_slot": 472273480,
+            "avg_confirmation_ms": 0,
+            "congestion_level": "CRITICAL",
+            "recent_failure_rate": 1
+          },
+          "groq_response": {
+            "should_retry": false,
+            "new_tip_lamports": 0,
+            "reason": "The current network congestion level is CRITICAL and the recent failure rate is 100.0%, indicating severe congestion. Retrying the transaction under these conditions is unlikely to succeed. Additionally, the failure type is a timeout, which suggests that the network is not currently capable of processing transactions efficiently. Given these conditions, it is not the right time to retry the transaction.",
+            "confidence_score": 0.9
+          },
+          "gate_passed": false
+        }
+      ],
+      "confirmed_via": "rpc_polling",
+      "failure_type": "Timeout",
+      "ai_decision": "{\n  \"should_retry\": false,\n  \"new_tip_lamports\": 0,\n  \"reason\": \"The current network congestion level is CRITICAL and the recent failure rate is 100.0%, indicating severe congestion. Retrying the transaction under these conditions is unlikely to succeed. Additionally, the failure type is a timeout, which suggests that the network is not currently capable of processing transactions efficiently. Given these conditions, it is not the right time to retry the transaction.\",\n  \"confidence_score\": 0.9\n}"
+    }
+  ]
+}
