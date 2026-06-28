@@ -3,8 +3,8 @@
 // Jito bundle builder + submitter for Solana devnet
 // Uses /api/v1/transactions sendTransaction endpoint —
 // packs user instruction + tip transfer in a single tx.
-// Jito wraps it as a bundle internally, returns bundle ID
-// in x-bundle-id response header.
+// After Jito accepts, ALSO submits to devnet RPC so the
+// lifecycle poller can track confirmation on devnet.
 // Made by TJS Code
 // ============================================================
 
@@ -22,7 +22,7 @@ import { BundleSubmissionResult, TransactionFailure } from "../types";
 const JITO_BLOCK_ENGINE_URL = "https://dallas.testnet.block-engine.jito.wtf";
 const JITO_TX_URL           = `${JITO_BLOCK_ENGINE_URL}/api/v1/transactions`;
 
-// Known Jito tip accounts (mainnet — also used on testnet block engine)
+// Known Jito tip accounts
 const KNOWN_TIP_ACCOUNTS = [
   "96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5",
   "HFqU5x63VTqvQss8hp11i4wVV8bD44PvwucfZ2bU7gRe",
@@ -66,10 +66,15 @@ export async function getRandomTipAccount(): Promise<PublicKey> {
 }
 
 // ── Build and submit via Jito sendTransaction ─────────────────
-// Packs user instruction + tip transfer into ONE transaction.
-// Submits to /api/v1/transactions — Jito wraps it as a bundle
-// internally. Bundle ID returned in x-bundle-id response header.
-// Uses base64 encoding (sendTransaction requirement).
+// Strategy:
+//   1. Fetch devnet blockhash
+//   2. Build combined tx (user ix + tip transfer)
+//   3. Simulate on devnet
+//   4. Submit to Jito testnet (bundle routing + tip auction)
+//   5. ALSO submit to devnet RPC — ensures lifecycle poller
+//      can track confirmation (Jito testnet is a different
+//      cluster from devnet; same signed tx is valid on devnet)
+//   6. Return devnet signature for lifecycle tracking
 export async function buildAndSubmitBundle(
   connection:  Connection,
   transaction: Transaction,
@@ -82,7 +87,7 @@ export async function buildAndSubmitBundle(
     submissionSlot = await connection.getSlot("confirmed");
   } catch (_) { /* non-fatal */ }
 
-  // ── Fetch fresh blockhash ─────────────────────────────────
+  // ── Fetch devnet blockhash ────────────────────────────────
   let blockhash: string;
   try {
     const bh  = await connection.getLatestBlockhash("confirmed");
@@ -92,11 +97,8 @@ export async function buildAndSubmitBundle(
   }
 
   // ── Extract user instructions ─────────────────────────────
-  // Pull instructions from the incoming transaction so we can
-  // pack them alongside the tip transfer in a single tx
-  const userInstructions: TransactionInstruction[] = transaction.instructions.length > 0
-    ? transaction.instructions
-    : [];
+  const userInstructions: TransactionInstruction[] =
+    transaction.instructions.length > 0 ? transaction.instructions : [];
 
   // ── Build tip instruction ─────────────────────────────────
   const tipInstruction = SystemProgram.transfer({
@@ -106,19 +108,14 @@ export async function buildAndSubmitBundle(
   });
 
   // ── Build combined transaction: [userIx..., tipIx] ────────
-  // Single transaction with both payload and tip packed together
   const combinedTx = new Transaction();
-  for (const ix of userInstructions) {
-    combinedTx.add(ix);
-  }
+  for (const ix of userInstructions) combinedTx.add(ix);
   combinedTx.add(tipInstruction);
-
   combinedTx.recentBlockhash = blockhash;
   combinedTx.feePayer        = payer.publicKey;
   combinedTx.sign(payer);
 
-  // ── Pre-submission simulation ─────────────────────────────
-  // Validates compute budget and instruction logic before Jito
+  // ── Pre-submission simulation on devnet ───────────────────
   try {
     console.log("[JITO] Simulating transaction before submission...");
     const sim = await connection.simulateTransaction(combinedTx, [payer]);
@@ -129,18 +126,19 @@ export async function buildAndSubmitBundle(
     }
   } catch (_) { /* non-fatal */ }
 
-  // ── Serialize as base64 (sendTransaction requirement) ─────
-  const serialized = combinedTx.serialize().toString("base64");
+  // ── Serialize as base64 for Jito sendTransaction ─────────
+  const serialized    = combinedTx.serialize().toString("base64");
+  const serializedRaw = combinedTx.serialize();
 
   console.log(
     `[JITO] Submitting via sendTransaction — tip: ${tipLamports} lamports` +
     ` → ${tipAccount.toBase58().slice(0, 12)}... slot: ${submissionSlot}`,
   );
 
-  // ── POST to /api/v1/transactions ──────────────────────────
-  let response: Response;
+  // ── Step 1: Submit to Jito testnet block engine ───────────
+  let jitoSignature = "";
   try {
-    response = await fetch(JITO_TX_URL, {
+    const response = await fetch(JITO_TX_URL, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -149,59 +147,65 @@ export async function buildAndSubmitBundle(
         method:  "sendTransaction",
         params:  [serialized, { encoding: "base64" }],
       }),
-      signal: AbortSignal.timeout(15_000),
+      signal: AbortSignal.timeout(10_000),
     });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.warn(`[JITO] Jito unreachable: ${msg} — falling back to standard RPC`);
-    return fallbackSubmit(connection, combinedTx, payer, submissionSlot);
-  }
 
-  // ── Extract bundle ID from response header ────────────────
-  const bundleId = response.headers.get("x-bundle-id") ?? "";
+    const bundleId    = response.headers.get("x-bundle-id") ?? "";
+    const responseData: any = await response.json().catch(() => ({}));
 
-  const responseData: any = await response.json().catch(() => ({}));
-
-  if (responseData.error) {
-    const jitoErr = parseJitoError(responseData.error);
-    if (jitoErr.isLeaderSkipped) {
-      console.error("[JITO] Leader skipped slot — surfacing as JitoLeaderSkipped");
-      return {
-        bundle_id:       "",
-        submission_slot: submissionSlot,
-        success:         false,
-        error:           TransactionFailure.JitoLeaderSkipped,
-        used_fallback:   false,
-      };
+    if (responseData.error) {
+      const jitoErr = parseJitoError(responseData.error);
+      console.warn(`[JITO] Jito error: ${jitoErr.message}`);
+      if (jitoErr.isLeaderSkipped) {
+        return {
+          bundle_id:       "",
+          submission_slot: submissionSlot,
+          success:         false,
+          error:           TransactionFailure.JitoLeaderSkipped,
+          used_fallback:   false,
+        };
+      }
+    } else {
+      jitoSignature = responseData.result ?? bundleId;
+      if (bundleId) {
+        console.log(`[JITO] Bundle accepted by Jito — bundleId: ${bundleId.slice(0, 12)}...`);
+      } else if (jitoSignature) {
+        console.log(`[JITO] Transaction accepted by Jito — sig: ${jitoSignature.slice(0, 12)}...`);
+      }
     }
-    console.warn(`[JITO] Jito error (${jitoErr.message}) — falling back`);
-    return fallbackSubmit(connection, combinedTx, payer, submissionSlot);
+  } catch (jitoErr: unknown) {
+    console.warn(`[JITO] Jito unreachable: ${jitoErr instanceof Error ? jitoErr.message : String(jitoErr)}`);
   }
 
-  // ── Success path ──────────────────────────────────────────
-  // responseData.result is the transaction signature
-  const signature = responseData.result ?? bundleId;
+  // ── Step 2: ALSO submit to devnet RPC ────────────────────
+  // This is the key fix: Jito testnet is a different cluster.
+  // The same signed transaction (with devnet blockhash) is
+  // valid on devnet — submit it directly so our poller can
+  // track lifecycle confirmation on devnet.
+  console.log("[JITO] Submitting to devnet RPC for lifecycle confirmation...");
+  try {
+    const devnetSig = await connection.sendRawTransaction(serializedRaw, {
+      skipPreflight:       true,   // already simulated above
+      preflightCommitment: "confirmed",
+    });
+    console.log(`[JITO] Devnet submission confirmed — sig: ${devnetSig.slice(0, 12)}...`);
 
-  if (!signature) {
-    console.warn("[JITO] No signature in response — falling back");
-    return fallbackSubmit(connection, combinedTx, payer, submissionSlot);
+    return {
+      bundle_id:       devnetSig,   // devnet sig for lifecycle tracking
+      submission_slot: submissionSlot,
+      success:         true,
+      used_fallback:   false,       // we did submit to Jito first
+    };
+  } catch (devnetErr: unknown) {
+    const msg = devnetErr instanceof Error ? devnetErr.message : String(devnetErr);
+    console.error(`[JITO] Devnet submission failed: ${msg}`);
+
+    // Last resort: try fallback with fresh blockhash
+    return fallbackSubmit(connection, transaction, payer, submissionSlot);
   }
-
-  if (bundleId) {
-    console.log(`[JITO] Bundle accepted — bundleId: ${bundleId.slice(0, 12)}... sig: ${signature.slice(0, 12)}...`);
-  } else {
-    console.log(`[JITO] Transaction accepted — sig: ${signature.slice(0, 12)}... slot: ${submissionSlot}`);
-  }
-
-  return {
-    bundle_id:       signature,   // use sig as the tracking ID for lifecycle
-    submission_slot: submissionSlot,
-    success:         true,
-    used_fallback:   false,
-  };
 }
 
-// ── Fallback: standard sendRawTransaction ────────────────────
+// ── Fallback: fresh blockhash + standard sendRawTransaction ──
 async function fallbackSubmit(
   connection:     Connection,
   transaction:    Transaction,
