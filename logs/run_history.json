@@ -1,5 +1,5 @@
 {
-  "total_runs": 10,
+  "total_runs": 11,
   "runs": [
     {
       "run_id": "run_2026-06-24T13-14-51-949Z",
@@ -150,6 +150,21 @@
       "geyser_confirmed_txns": 0,
       "slot_range": "472537387–472538344",
       "archive_file": "history/run_2026-06-28T10-57-23-685Z.json"
+    },
+    {
+      "run_id": "run_2026-06-29T07-46-08-496Z",
+      "run_at": "2026-06-29T07:46:08.496Z",
+      "total_txns": 11,
+      "successful": 9,
+      "failed": 2,
+      "success_rate_pct": 81.8,
+      "avg_confirmation_ms": 1740,
+      "total_tips_lamports": 531959,
+      "ai_interventions": 2,
+      "ai_approved_retries": 1,
+      "geyser_confirmed_txns": 0,
+      "slot_range": "472735225–472736067",
+      "archive_file": "history/run_2026-06-29T07-46-08-496Z.json"
     }
   ]
 }

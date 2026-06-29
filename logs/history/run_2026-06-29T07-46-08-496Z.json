@@ -1,6 +1,19 @@
 {
-  "generated_at": "2026-06-29T07:51:22.761Z",
+  "run_id": "run_2026-06-29T07-46-08-496Z",
+  "run_at": "2026-06-29T07:46:08.496Z",
+  "generated_at": "2026-06-29T07:51:22.780Z",
   "total_entries": 11,
+  "summary": {
+    "total_transactions": 11,
+    "successful": 9,
+    "failed": 2,
+    "success_rate_pct": 81.81818181818183,
+    "avg_confirmation_ms": 1740,
+    "total_tips_paid_lamports": 531959,
+    "ai_interventions": 2,
+    "ai_approved_retries": 1,
+    "ai_rejected_retries": 1
+  },
   "entries": [
     {
       "signature": "4Z29ewjFfu4JJQgzx4xSCG3MRebwEHV94QNAdE66Ex9LCKPP47HAMnfeY1KBU7xjavFxgzDVipMebocx5eJgWWvK",
